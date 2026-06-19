@@ -90,6 +90,35 @@
       margin-top: 0.5rem;
     }
     .btn:hover { background: #0d47a1; }
+    .btn-secondary {
+      background: #fff;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      margin-right: 0.5rem;
+    }
+    .btn-secondary:hover { background: #eef2f7; color: #1a1a1a; }
+    .so-do-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 0.75rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .so-do-bar h2 { margin: 0; font-size: 1.1rem; flex: 1 1 100%; }
+    .so-do-bar select {
+      flex: 1 1 200px;
+      min-width: 180px;
+      padding: 0.45rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    .so-do-bar .note { margin: 0; flex: 1 1 100%; }
     .note { font-size: 0.85rem; color: var(--muted); margin-top: 0.75rem; }
   </style>
 </head>
@@ -97,6 +126,14 @@
   <div class="wrap">
     <h1>Sổ đo thủy chuẩn hạng 4</h1>
     <p class="caption">Tự phân bổ không đều theo tổng hợp dự án — mọi trạm đạt hạng IV. Đổi thông số kỹ thuật hoặc bấm Phân bổ lại để có bộ số khác.</p>
+
+    <div class="so-do-bar">
+      <h2>Danh sách sổ đo</h2>
+      <select id="chonSoDo" aria-label="Chọn sổ đo"></select>
+      <button class="btn btn-secondary" id="btnThemSo" type="button">Thêm sổ mới</button>
+      <button class="btn btn-secondary" id="btnXoaSo" type="button">Xóa sổ</button>
+      <p class="note" id="thongTinDanhSach"></p>
+    </div>
 
     <div class="grid-2">
       <div class="card">
@@ -1017,16 +1054,38 @@
     ws.getColumn('L').width = 18;
   }
 
-  async function buildWorkbook(duAn, nTram, k1, k2, deltaK, tongHop, docList, metaSel) {
-    const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('Sheet1');
-    writeHeader(ws, duAn);
+  function populateSheet(ws, entry) {
+    const { inp, nTram, docList, metaSel, tongHop } = entry;
+    writeHeader(ws, inp.duAn);
     let prevEDeltaRow = null;
     for (let i = 0; i < docList.length; i++) {
-      const kq = tinhKetQuaTram(docList[i], k1, k2, deltaK, i + 1, metaSel[i].nS, metaSel[i].nT);
-      prevEDeltaRow = writeStationBlock(ws, i + 1, docList[i], kq, metaSel[i], k1, k2, deltaK, prevEDeltaRow);
+      const kq = tinhKetQuaTram(docList[i], inp.k1, inp.k2, inp.deltaK, i + 1, metaSel[i].nS, metaSel[i].nT);
+      prevEDeltaRow = writeStationBlock(ws, i + 1, docList[i], kq, metaSel[i], inp.k1, inp.k2, inp.deltaK, prevEDeltaRow);
     }
-    writeSummary(ws, nTram, tongHop, docList, k1, k2, deltaK, metaSel);
+    writeSummary(ws, nTram, tongHop, docList, inp.k1, inp.k2, inp.deltaK, metaSel);
+  }
+
+  function taoTenSheet(doTu, index) {
+    let base = (doTu || `So_${index}`).replace(/[\\/?*\[\]:]/g, '_').replace(/\s+/g, '_').slice(0, 25);
+    if (!base) base = `So_${index}`;
+    return `${index}_${base}`.slice(0, 31);
+  }
+
+  async function buildWorkbookNhieuSo(entries) {
+    const wb = new ExcelJS.Workbook();
+    const used = new Set();
+    entries.forEach((entry, i) => {
+      let name = taoTenSheet(entry.inp.duAn.doTu, i + 1);
+      let n = 2;
+      while (used.has(name)) {
+        const suffix = `_${n}`;
+        name = name.slice(0, 31 - suffix.length) + suffix;
+        n++;
+      }
+      used.add(name);
+      const ws = wb.addWorksheet(name);
+      populateSheet(ws, entry);
+    });
     return wb;
   }
 
@@ -1041,91 +1100,102 @@
     return `<span class="${ok ? 'status-ok' : 'status-fail'}">${ok ? 'ĐẠT' : 'KHÔNG ĐẠT'}</span>`;
   }
 
-  let lastState = null;
+  function writeInputs(inp) {
+    if (!inp) return;
+    const d = inp.duAn;
+    document.getElementById('doTu').value = d.doTu;
+    document.getElementById('den').value = d.den;
+    document.getElementById('batDau').value = d.batDau;
+    document.getElementById('ketThuc').value = d.ketThuc;
+    document.getElementById('ngayDo').value = d.ngayDo;
+    document.getElementById('thoiTiet').value = d.thoiTiet;
+    document.getElementById('nguoiDo').value = d.nguoiDo;
+    document.getElementById('nguoiGhi').value = d.nguoiGhi;
+    document.getElementById('nguoiKiemTra').value = d.nguoiKiemTra;
+    document.getElementById('nTram').value = inp.nTram;
+    document.getElementById('k1').value = inp.k1;
+    document.getElementById('k2').value = inp.k2;
+    document.getElementById('deltaK').value = inp.deltaK;
+    document.getElementById('lSau').value = inp.lSau;
+    document.getElementById('kcSauMin').value = inp.kcSauMin != null ? inp.kcSauMin : '';
+    document.getElementById('kcSauMax').value = inp.kcSauMax != null ? inp.kcSauMax : '';
+    document.getElementById('lTruoc').value = inp.lTruoc;
+    document.getElementById('hTong').value = inp.hTong;
+    document.getElementById('iTong').value = inp.iTong;
+  }
+
+  let danhSachSoDo = [];
+  let chiSoHienTai = 0;
+  let soDoIdCounter = 0;
 
   const TECH_INPUT_IDS = ['nTram', 'k1', 'k2', 'deltaK', 'lSau', 'kcSauMin', 'kcSauMax', 'lTruoc', 'hTong', 'iTong'];
   const PROJECT_INPUT_IDS = ['doTu', 'den', 'batDau', 'ketThuc', 'ngayDo', 'thoiTiet', 'nguoiDo', 'nguoiGhi', 'nguoiKiemTra'];
 
-  function capNhatThongTinDuAn() {
-    if (!lastState) {
-      capNhat(true);
-      return;
+  function damBaoDanhSach() {
+    if (!danhSachSoDo.length) {
+      danhSachSoDo.push({
+        id: ++soDoIdCounter,
+        inp: null,
+        nTram: 0,
+        docList: null,
+        metaSel: null,
+        tongHop: null,
+        datTongHop: false,
+      });
+      chiSoHienTai = 0;
     }
-    const inp = readInputs();
-    lastState.inp = { ...lastState.inp, duAn: inp.duAn };
   }
 
-  function capNhat(reshuffle) {
-    const inp = readInputs();
-    const nTram = Math.max(1, Math.min(50, inp.nTram));
-    const alertKc = document.getElementById('alertKcSau');
+  function luuSoHienTai() {
+    damBaoDanhSach();
+    danhSachSoDo[chiSoHienTai].inp = readInputs();
+  }
 
-    if (inp.kcSauMin != null && inp.kcSauMax != null && inp.kcSauMin > inp.kcSauMax) {
-      alertKc.className = 'note';
-      alertKc.style.color = 'var(--error)';
-      alertKc.textContent = 'Cận dưới KC sau phải ≤ cận trên.';
-      return;
-    }
+  function taiSoVaoForm(entry) {
+    if (entry?.inp) writeInputs(entry.inp);
+  }
 
-    const tbMin = inp.kcSauMin ?? 0;
-    const tbMax = inp.kcSauMax ?? Infinity;
-    if ((inp.kcSauMin != null || inp.kcSauMax != null) && !kcSauKhaThi(nTram, inp.lSau, inp.kcSauMin, inp.kcSauMax)) {
-      alertKc.className = 'note';
-      alertKc.style.color = 'var(--error)';
-      alertKc.textContent = (
-        `Không thể phân bổ: cần ${inp.lSau} m tổng L_sau nhưng `
-        + `${nTram} trạm × [${inp.kcSauMin ?? '−∞'}, ${inp.kcSauMax ?? '+∞'}] m `
-        + `chỉ cho phép từ ${(nTram * tbMin).toFixed(1)} đến ${Number.isFinite(tbMax) ? (nTram * tbMax).toFixed(1) : '∞'} m.`
-      );
-      return;
-    }
+  function capNhatSelectSoDo() {
+    const sel = document.getElementById('chonSoDo');
+    sel.innerHTML = danhSachSoDo.map((e, i) => {
+      const doTu = e.inp?.duAn?.doTu || '(chưa đặt tên)';
+      return `<option value="${i}">Sổ ${i + 1} — ${doTu}</option>`;
+    }).join('');
+    sel.value = String(chiSoHienTai);
+  }
 
-    if (inp.kcSauMin != null || inp.kcSauMax != null) {
-      alertKc.className = 'note';
-      alertKc.style.color = 'var(--muted)';
-      alertKc.textContent = (
-        `Giới hạn KC sau mỗi trạm: `
-        + `${inp.kcSauMin != null ? inp.kcSauMin + ' m' : 'không'} `
-        + `đến ${inp.kcSauMax != null ? inp.kcSauMax + ' m' : 'không giới hạn'}.`
-      );
-    } else {
-      alertKc.textContent = '';
-    }
+  function capNhatThongTinDanhSach() {
+    const n = danhSachSoDo.length;
+    const entry = danhSachSoDo[chiSoHienTai];
+    const doTu = entry?.inp?.duAn?.doTu || readInputs().duAn.doTu || '(chưa đặt tên)';
+    document.getElementById('thongTinDanhSach').textContent =
+      `Đang có ${n} sổ — sổ hiện tại: «${doTu}»`;
+    document.getElementById('btnXoaSo').style.display = n <= 1 ? 'none' : 'inline-block';
+  }
 
-    const alertTongHop = document.getElementById('alertTongHop');
-    const dv = kiemTraDauVao(inp, nTram);
-    if (!dv.ok) {
-      const parts = [];
-      if (!dv.kq.datChenhKc) {
-        parts.push(`chênh khoảng cách |ΔL|=${Math.abs(dv.kq.deltaL).toFixed(1)} m > ${dv.kq.gioiHanChenhKc} m`);
-      }
-      if (!dv.kq.datKiemTraK) {
-        parts.push(`kiểm tra K: |I−H−ΔK|=${Math.abs(dv.kq.deltaHi - inp.deltaK).toFixed(0)} mm > ${inp.deltaK} mm`);
-      }
-      alertTongHop.className = 'alert alert-error';
-      alertTongHop.textContent = `Tổng hợp nhập không đạt: ${parts.join('; ')}. Chỉnh L_sau/L_truoc hoặc H/I.`;
-      lastState = null;
-      return;
-    }
-    alertTongHop.textContent = '';
+  function capNhatNutDownload() {
+    const n = danhSachSoDo.filter(e => e.docList && e.docList.length).length;
+    document.getElementById('btnDownload').textContent =
+      n ? `Tải file Excel (${n} sổ)` : 'Tải file Excel';
+  }
 
-    const phanBo = phanBoTram(
-      nTram, inp.k1, inp.k2, inp.lSau, inp.lTruoc, inp.hTong, inp.iTong, inp.deltaK,
-      inp.kcSauMin, inp.kcSauMax
-    );
-    if (!phanBo) {
-      alertKc.className = 'note';
-      alertKc.style.color = 'var(--error)';
-      alertKc.textContent = 'Không tìm được phân bổ thỏa mọi tiêu chí — bấm Phân bổ lại hoặc nới biên KC sau.';
-      alertTongHop.className = 'alert alert-error';
-      alertTongHop.textContent = 'Không tìm được phân bổ đạt hạng IV và 3 tiêu chí tổng hợp sau 50 lần thử.';
-      lastState = null;
-      return;
-    }
-    const { docList, metaSel } = phanBo;
+  function voHieuHoaEntryHienTai(inp) {
+    damBaoDanhSach();
+    const entry = danhSachSoDo[chiSoHienTai];
+    entry.inp = inp;
+    entry.docList = null;
+    entry.metaSel = null;
+    entry.tongHop = null;
+    entry.datTongHop = false;
+    capNhatSelectSoDo();
+    capNhatThongTinDanhSach();
+    capNhatNutDownload();
+  }
+
+  function hienThiKetQua(inp, nTram, docList, metaSel) {
     const kiemTra = tongKiemTra(docList, inp.k1, inp.k2, inp.deltaK, metaSel);
-    const tong = tongCot(docList, inp.k1, inp.k2, inp.deltaK, metaSel);
     const hang4 = kiemTraHang4(docList, inp.k1, inp.k2, inp.deltaK, metaSel);
+    const tong = tongCot(docList, inp.k1, inp.k2, inp.deltaK, metaSel);
     const kq = tinhKetQuaTongHop({
       soTram: nTram, k1: inp.k1, k2: inp.k2, deltaK: inp.deltaK,
       lSau: kiemTra.lSau, lTruoc: kiemTra.lTruoc,
@@ -1192,6 +1262,7 @@
       <div class="metric"><div class="label">Chênh I − H</div><div class="value">${kq.deltaHi} mm</div></div>
     `;
 
+    const alertTongHop = document.getElementById('alertTongHop');
     if (kq.datTongHop) {
       alertTongHop.className = 'alert alert-success';
       alertTongHop.textContent = 'Kết luận tổng hợp: ĐẠT — cả 3 tiêu chí đều thỏa.';
@@ -1216,21 +1287,177 @@
     );
 
     document.getElementById('infoFile').textContent =
-      `File Excel gồm ${nTram} trạm — phân bổ đạt hạng IV và 3 tiêu chí tổng hợp.`;
+      `Sổ hiện tại: ${nTram} trạm — phân bổ đạt hạng IV và 3 tiêu chí tổng hợp.`;
 
-    lastState = {
-      inp, nTram, docList, metaSel,
-      tongHop: { lSau: inp.lSau, lTruoc: inp.lTruoc, hTong: inp.hTong, iTong: inp.iTong },
+    return kq;
+  }
+
+  function hienThiTuEntry(entry) {
+    if (!entry?.docList) {
+      capNhat(false);
+      return;
+    }
+    hienThiKetQua(entry.inp, entry.nTram, entry.docList, entry.metaSel);
+  }
+
+  function capNhatThongTinDuAn() {
+    damBaoDanhSach();
+    const inp = readInputs();
+    const entry = danhSachSoDo[chiSoHienTai];
+    if (entry.inp) {
+      entry.inp = { ...entry.inp, duAn: inp.duAn };
+    } else {
+      entry.inp = inp;
+    }
+    capNhatSelectSoDo();
+    capNhatThongTinDanhSach();
+  }
+
+  function capNhat(reshuffle) {
+    damBaoDanhSach();
+    const inp = readInputs();
+    const nTram = Math.max(1, Math.min(50, inp.nTram));
+    const alertKc = document.getElementById('alertKcSau');
+
+    if (inp.kcSauMin != null && inp.kcSauMax != null && inp.kcSauMin > inp.kcSauMax) {
+      alertKc.className = 'note';
+      alertKc.style.color = 'var(--error)';
+      alertKc.textContent = 'Cận dưới KC sau phải ≤ cận trên.';
+      voHieuHoaEntryHienTai(inp);
+      return;
+    }
+
+    const tbMin = inp.kcSauMin ?? 0;
+    const tbMax = inp.kcSauMax ?? Infinity;
+    if ((inp.kcSauMin != null || inp.kcSauMax != null) && !kcSauKhaThi(nTram, inp.lSau, inp.kcSauMin, inp.kcSauMax)) {
+      alertKc.className = 'note';
+      alertKc.style.color = 'var(--error)';
+      alertKc.textContent = (
+        `Không thể phân bổ: cần ${inp.lSau} m tổng L_sau nhưng `
+        + `${nTram} trạm × [${inp.kcSauMin ?? '−∞'}, ${inp.kcSauMax ?? '+∞'}] m `
+        + `chỉ cho phép từ ${(nTram * tbMin).toFixed(1)} đến ${Number.isFinite(tbMax) ? (nTram * tbMax).toFixed(1) : '∞'} m.`
+      );
+      voHieuHoaEntryHienTai(inp);
+      return;
+    }
+
+    if (inp.kcSauMin != null || inp.kcSauMax != null) {
+      alertKc.className = 'note';
+      alertKc.style.color = 'var(--muted)';
+      alertKc.textContent = (
+        `Giới hạn KC sau mỗi trạm: `
+        + `${inp.kcSauMin != null ? inp.kcSauMin + ' m' : 'không'} `
+        + `đến ${inp.kcSauMax != null ? inp.kcSauMax + ' m' : 'không giới hạn'}.`
+      );
+    } else {
+      alertKc.textContent = '';
+    }
+
+    const alertTongHop = document.getElementById('alertTongHop');
+    const dv = kiemTraDauVao(inp, nTram);
+    if (!dv.ok) {
+      const parts = [];
+      if (!dv.kq.datChenhKc) {
+        parts.push(`chênh khoảng cách |ΔL|=${Math.abs(dv.kq.deltaL).toFixed(1)} m > ${dv.kq.gioiHanChenhKc} m`);
+      }
+      if (!dv.kq.datKiemTraK) {
+        parts.push(`kiểm tra K: |I−H−ΔK|=${Math.abs(dv.kq.deltaHi - inp.deltaK).toFixed(0)} mm > ${inp.deltaK} mm`);
+      }
+      alertTongHop.className = 'alert alert-error';
+      alertTongHop.textContent = `Tổng hợp nhập không đạt: ${parts.join('; ')}. Chỉnh L_sau/L_truoc hoặc H/I.`;
+      voHieuHoaEntryHienTai(inp);
+      return;
+    }
+    alertTongHop.textContent = '';
+
+    if (!reshuffle) {
+      const entry = danhSachSoDo[chiSoHienTai];
+      if (entry.docList) {
+        hienThiKetQua(entry.inp, entry.nTram, entry.docList, entry.metaSel);
+        return;
+      }
+    }
+
+    const phanBo = phanBoTram(
+      nTram, inp.k1, inp.k2, inp.lSau, inp.lTruoc, inp.hTong, inp.iTong, inp.deltaK,
+      inp.kcSauMin, inp.kcSauMax
+    );
+    if (!phanBo) {
+      alertKc.className = 'note';
+      alertKc.style.color = 'var(--error)';
+      alertKc.textContent = 'Không tìm được phân bổ thỏa mọi tiêu chí — bấm Phân bổ lại hoặc nới biên KC sau.';
+      alertTongHop.className = 'alert alert-error';
+      alertTongHop.textContent = 'Không tìm được phân bổ đạt hạng IV và 3 tiêu chí tổng hợp sau 50 lần thử.';
+      voHieuHoaEntryHienTai(inp);
+      return;
+    }
+    const { docList, metaSel } = phanBo;
+    const kq = hienThiKetQua(inp, nTram, docList, metaSel);
+
+    const entry = danhSachSoDo[chiSoHienTai];
+    if (!entry.id) entry.id = ++soDoIdCounter;
+    entry.inp = inp;
+    entry.nTram = nTram;
+    entry.docList = docList;
+    entry.metaSel = metaSel;
+    entry.tongHop = { lSau: inp.lSau, lTruoc: inp.lTruoc, hTong: inp.hTong, iTong: inp.iTong };
+    entry.datTongHop = kq.datTongHop;
+    capNhatSelectSoDo();
+    capNhatThongTinDanhSach();
+    capNhatNutDownload();
+  }
+
+  function themSoMoi() {
+    luuSoHienTai();
+    const hienTai = danhSachSoDo[chiSoHienTai];
+    const moi = {
+      id: ++soDoIdCounter,
+      inp: hienTai.inp ? JSON.parse(JSON.stringify(hienTai.inp)) : readInputs(),
+      nTram: 0,
+      docList: null,
+      metaSel: null,
+      tongHop: null,
+      datTongHop: false,
     };
+    danhSachSoDo.push(moi);
+    chiSoHienTai = danhSachSoDo.length - 1;
+    taiSoVaoForm(moi);
+    capNhatSelectSoDo();
+    capNhatThongTinDanhSach();
+    capNhat(true);
+  }
+
+  function xoaSo() {
+    if (danhSachSoDo.length <= 1) return;
+    luuSoHienTai();
+    danhSachSoDo.splice(chiSoHienTai, 1);
+    chiSoHienTai = Math.min(chiSoHienTai, danhSachSoDo.length - 1);
+    const entry = danhSachSoDo[chiSoHienTai];
+    taiSoVaoForm(entry);
+    capNhatSelectSoDo();
+    capNhatThongTinDanhSach();
+    capNhatNutDownload();
+    hienThiTuEntry(entry);
   }
 
   async function downloadExcel() {
-    if (!lastState) return;
-    const { inp, nTram, docList, metaSel, tongHop } = lastState;
-    const wb = await buildWorkbook(inp.duAn, nTram, inp.k1, inp.k2, inp.deltaK, tongHop, docList, metaSel);
+    luuSoHienTai();
+    const coDuLieu = danhSachSoDo.filter(e => e.docList && e.docList.length);
+    if (!coDuLieu.length) {
+      alert('Chưa có sổ nào phân bổ thành công để xuất.');
+      return;
+    }
+    const chuaDat = coDuLieu.filter(e => !e.datTongHop);
+    if (chuaDat.length) {
+      const ok = confirm(
+        `Có ${chuaDat.length}/${coDuLieu.length} sổ chưa ĐẠT tổng hợp. Vẫn tải file Excel?`
+      );
+      if (!ok) return;
+    }
+    const wb = await buildWorkbookNhieuSo(coDuLieu);
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const name = 'So_do_' + (inp.duAn.doTu.replace(/\s+/g, '_').slice(0, 30) || 'du_an') + '.xlsx';
+    const name = `So_do_${coDuLieu.length}_sổ.xlsx`;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = name;
@@ -1250,6 +1477,16 @@
   });
   document.getElementById('btnReshuffle').addEventListener('click', () => capNhat(true));
   document.getElementById('btnDownload').addEventListener('click', downloadExcel);
+  document.getElementById('btnThemSo').addEventListener('click', themSoMoi);
+  document.getElementById('btnXoaSo').addEventListener('click', xoaSo);
+  document.getElementById('chonSoDo').addEventListener('change', () => {
+    luuSoHienTai();
+    chiSoHienTai = parseInt(document.getElementById('chonSoDo').value, 10);
+    const entry = danhSachSoDo[chiSoHienTai];
+    taiSoVaoForm(entry);
+    capNhatThongTinDanhSach();
+    hienThiTuEntry(entry);
+  });
   capNhat(true);
   </script>
 </body>
