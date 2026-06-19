@@ -950,7 +950,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       const iDiff = Math.abs(sumI() - target);
       const jst = sumJst();
       const jOver = Math.max(0, Math.abs(jst) - mpLimit);
-      return iDiff * 100 + jOver * 500 - jActivity() * 0.15;
+      return iDiff * 100 + jOver * 500 + Math.abs(jst) * 50 - jActivity() * 0.15;
     };
 
     let bestChoice = choice.slice();
@@ -959,7 +959,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     for (let step = 0; step < 3000; step++) {
       const iDiff = sumI() - target;
       const curJst = sumJst();
-      if (iDiff === 0 && Math.abs(curJst) <= mpLimit) break;
+      if (iDiff === 0 && curJst === 0) break;
 
       let bestMove = null;
       let bestMoveScore = Infinity;
@@ -975,7 +975,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           const iDiffNew = Math.abs(newI - target);
           const jOver = Math.max(0, Math.abs(newJst) - mpLimit);
           const jAct = Math.abs(pair[0]) + Math.abs(pair[1]);
-          const moveScore = iDiffNew * 100 + jOver * 500 - jAct * 0.15 + Math.random() * 0.05;
+          const moveScore = iDiffNew * 100 + jOver * 500 + Math.abs(newJst) * 50 - jAct * 0.15 + Math.random() * 0.05;
           if (moveScore < bestMoveScore) {
             bestMoveScore = moveScore;
             bestMove = [i, k];
@@ -1032,6 +1032,39 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       saiSoHS: Math.round(saiSoHS * 100) / 100,
       saiSoHT: Math.round(saiSoHT * 100) / 100,
     };
+  }
+
+  function dieuChinhTongChenhH(docList, metaSel, k1, k2, deltaK, mucTieu) {
+    if (!docList.length) return;
+    let tongChenhH = 0;
+    for (let i = 0; i < docList.length; i++) {
+      const kq = tinhKetQuaTram(docList[i], k1, k2, deltaK, i + 1, metaSel[i].nS, metaSel[i].nT);
+      tongChenhH += kq.chenhH;
+    }
+    const drift = Math.round(mucTieu) - tongChenhH;
+    if (drift === 0) return;
+
+    const i = docList.length - 1;
+    const doc = docList[i];
+    const tram = i + 1;
+    const meta = metaSel[i];
+    const kq0 = tinhKetQuaTram(doc, k1, k2, deltaK, tram, meta.nS, meta.nT);
+    const midC = (doc.cS + doc.cT) / 2;
+    const midE2 = (doc.eS + doc.eT) / 2;
+    let newHS = doc.hS + drift;
+    if (Math.abs(newHS - midC) <= GIOI_HAN_OFFSET_H) {
+      doc.hS = newHS;
+    } else {
+      const newHT = doc.hT - drift;
+      if (Math.abs(newHT - midE2) <= GIOI_HAN_OFFSET_H) {
+        doc.hT = newHT;
+      } else {
+        doc.hS = Math.round(midC) + clamp(newHS - Math.round(midC), -4, 4);
+      }
+    }
+    const ii = iFromJ(doc.hS, doc.hT, tram, k1, k2, deltaK, meta, kq0.jS, kq0.jT);
+    doc.iS = ii.iS;
+    doc.iT = ii.iT;
   }
 
   function phanBoTramOnce(n, k1, k2, lSau, lTruoc, hTong, iTong, deltaK, weights, midEList, kcSauMin, kcSauMax) {
@@ -1095,6 +1128,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         iT: ii.iT,
       };
     });
+    dieuChinhTongChenhH(docList, metaSel, k1, k2, deltaK, hTong);
     return { docList, metaSel };
   }
 
@@ -1127,7 +1161,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       h.datKc5m && h.datHS5mm && h.datHT5mm && h.datJS && h.datJT && h.datJSt
     ));
     if (bad.length) return false;
-    if (Math.abs(kt.hTong - hTong) > 1 || Math.abs(kt.iTong - iTong) > 2) return false;
+    const tong = tongCot(docList, k1, k2, deltaK, metaSel);
+    if (Math.abs(kt.hTong - hTong) > 1 || Math.abs(tong.tongChenhCao - hTong) > 1 || Math.abs(kt.iTong - iTong) > 2) return false;
     if (kcSauMin != null || kcSauMax != null) {
       const lo = kcSauMin ?? 0;
       const hi = kcSauMax ?? Infinity;
@@ -1138,7 +1173,6 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
     if (!coKAmDuong(docList, metaSel, k1, k2, deltaK, n, hTong)) return false;
     if (requireRealism !== false && !coSaiSoThucTe(docList, metaSel, k1, k2, deltaK)) return false;
-    const tong = tongCot(docList, k1, k2, deltaK, metaSel);
     const kqTH = tinhKetQuaTongHop({
       soTram: n, k1, k2, deltaK,
       lSau: kt.lSau, lTruoc: kt.lTruoc,
@@ -1379,15 +1413,16 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   function tongCot(docList, k1, k2, deltaK, metaSel) {
     const s = { C: 0, E: 0, H: 0, I: 0 };
     const t = { C: 0, E: 0, H: 0, I: 0 };
-    let jS = 0, jT = 0, jSt = 0;
+    let jS = 0, jT = 0, jSt = 0, tongChenhCao = 0;
     docList.forEach((d, i) => {
       s.C += d.cS; s.E += d.eS; s.H += d.hS; s.I += d.iS;
       t.C += d.cT; t.E += d.eT; t.H += d.hT; t.I += d.iT;
       const meta = metaSel ? metaSel[i] : null;
       const kq = tinhKetQuaTram(d, k1, k2, deltaK, i + 1, meta?.nS, meta?.nT);
       jS += kq.jS; jT += kq.jT; jSt += kq.jSt;
+      tongChenhCao += kq.chenhCao;
     });
-    return { s, t, jS, jT, jSt };
+    return { s, t, jS, jT, jSt, tongChenhCao };
   }
 
   function writeSummary(ws, nTram, tongHop, docList, k1, k2, deltaK, metaSel) {
@@ -1413,10 +1448,10 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     ws.getCell(`C${rUserSt}`).value = tongHop.lSau;
     ws.getCell(`E${rUserSt}`).value = tongHop.lTruoc;
     ws.getCell(`F${rUserSt}`).value = 'S-T';
-    ws.getCell(`H${rUserSt}`).value = tongHop.hTong;
+    ws.getCell(`H${rUserSt}`).value = tong.s.H - tong.t.H;
     ws.getCell(`I${rUserSt}`).value = tong.s.I - tong.t.I;
     ws.getCell(`J${rUserSt}`).value = tong.jSt;
-    ws.getCell(`K${rUserSt}`).value = tongHop.hTong;
+    ws.getCell(`K${rUserSt}`).value = tong.tongChenhCao;
     ws.getCell(`C${rChenh}`).value = deltaL;
     ws.getCell(`E${rChenh}`).value = deltaL;
 
@@ -1600,7 +1635,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     );
 
     document.getElementById('tongTinhLai').textContent =
-      `Tổng tính lại: L_sau=${kiemTra.lSau} m, L_truoc=${kiemTra.lTruoc} m, H=${kiemTra.hTong} mm, I=${kiemTra.iTong} mm`;
+      `Tổng tính lại: L_sau=${kiemTra.lSau} m, L_truoc=${kiemTra.lTruoc} m, H=${kiemTra.hTong} mm, I=${kiemTra.iTong} mm, ΣK=${tong.tongChenhCao} mm`;
 
     const hang4Rows = hang4.map(h => [
       h.tram,
