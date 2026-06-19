@@ -56,8 +56,8 @@
     th, td { padding: 0.5rem 0.65rem; text-align: left; border-bottom: 1px solid var(--border); }
     th { background: #eef2f7; font-weight: 600; white-space: nowrap; }
     tr:last-child td { border-bottom: none; }
-    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin: 1rem 0; }
-    @media (max-width: 700px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
+    .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; margin: 1rem 0; }
+    @media (max-width: 900px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
     .metric {
       background: var(--card);
       border: 1px solid var(--border);
@@ -165,6 +165,7 @@
 
     <section>
       <h2>Xem trước kiểm tra tổng hợp</h2>
+      <div id="alertTongHop"></div>
       <div class="metrics" id="metrics"></div>
       <div class="table-wrap check-table">
         <table id="tblTongHop"><thead><tr><th>Tiêu chí</th><th>Kết quả</th></tr></thead><tbody></tbody></table>
@@ -348,16 +349,51 @@
     };
   }
 
-  function taoStadiaVaH(kcSau, kcTruoc, chenhH, midE) {
-    const midC = midE + chenhH;
-    return {
-      cS: Math.round(midC + 5 * kcSau),
-      cT: Math.round(midC - 5 * kcSau),
-      eS: Math.round(midE + 5 * kcTruoc),
-      eT: Math.round(midE - 5 * kcTruoc),
-      hS: midC,
-      hT: midE,
-    };
+  function taoOffsetHMid() {
+    const pool = [-2, -1, 1, 2, 0, 0];
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function taoDanhSachOffsetH(n) {
+    const offs = [];
+    let sumPair = 0;
+    for (let i = 0; i < n - 1; i++) {
+      let offS = taoOffsetHMid();
+      const extra = [-1, 0, 0, 1][Math.floor(Math.random() * 4)];
+      let offT = offS - extra;
+      offS = clamp(offS, -4, 4);
+      offT = clamp(offT, -4, 4);
+      offs.push({ offS, offT });
+      sumPair += offS - offT;
+    }
+    let offS = taoOffsetHMid();
+    let offT = offS + sumPair;
+    offS = clamp(offS, -4, 4);
+    offT = clamp(offT, -4, 4);
+    if (offS - offT !== -sumPair) {
+      offT = clamp(offS + sumPair, -4, 4);
+    }
+    offs.push({ offS, offT });
+    return offs;
+  }
+
+  function taoStadiaVaH(kcSau, kcTruoc, chenhH, midE, offS, offT) {
+    const midC0 = midE + chenhH;
+    const cS = Math.round(midC0 + 5 * kcSau);
+    const cT = Math.round(midC0 - 5 * kcSau);
+    const eS = Math.round(midE + 5 * kcTruoc);
+    const eT = Math.round(midE - 5 * kcTruoc);
+    const midC = (cS + cT) / 2;
+    const midE2 = (eS + eT) / 2;
+    let hS = Math.round(midC) + (offS || 0);
+    let hT = Math.round(midE2) + (offT || 0);
+    if (Math.abs(hS - midC) > GIOI_HAN_OFFSET_H) {
+      hS = Math.round(midC) + clamp(offS || 0, -4, 4);
+    }
+    if (Math.abs(hT - midE2) > GIOI_HAN_OFFSET_H) {
+      hT = Math.round(midE2) + clamp(offT || 0, -4, 4);
+    }
+    return { cS, cT, eS, eT, hS, hT };
   }
 
   function iFromJ(hS, hT, tram, k1, k2, deltaK, meta, jS, jT) {
@@ -392,7 +428,7 @@
         seen.add(key);
         const cost = (
           Math.abs(chenhI - chenhITarget)
-          - 0.008 * (Math.abs(jS) + Math.abs(jT))
+          - 0.25 * (Math.abs(jS) + Math.abs(jT))
           + Math.random() * 0.05
         );
         pairs.push([jS, jT, chenhI, jSt, chenhCao, cost]);
@@ -401,58 +437,72 @@
     return pairs;
   }
 
-  function chonJToanTuyen(allPairs, iTong) {
+  function chonJToanTuyen(allPairs, iTong, mp) {
     const n = allPairs.length;
-    const choice = allPairs.map((pairs, i) => {
+    const target = Math.round(iTong);
+    const mpLimit = mp != null ? mp : Infinity;
+
+    const choice = allPairs.map((pairs) => {
       let bestK = 0;
       let bestCost = Infinity;
       pairs.forEach((p, k) => {
-        if (p[5] < bestCost) { bestCost = p[5]; bestK = k; }
+        const cost = Math.abs(p[2] - target / n) + p[5] - 0.15 * (Math.abs(p[0]) + Math.abs(p[1]));
+        if (cost < bestCost) { bestCost = cost; bestK = k; }
       });
       return bestK;
     });
-    const target = Math.round(iTong);
-    const totalI = () => choice.reduce((s, k, i) => s + allPairs[i][k][2], 0);
-    let bestChoice = choice.slice();
-    let bestDiff = Math.abs(totalI() - target);
 
-    for (let step = 0; step < 2000; step++) {
-      const cur = totalI();
-      const diff = target - cur;
-      if (diff === 0) break;
-      const sign = diff > 0 ? 1 : -1;
+    const jActivity = () => choice.reduce((s, k, i) => {
+      const p = allPairs[i][k];
+      return s + Math.abs(p[0]) + Math.abs(p[1]);
+    }, 0);
+
+    const sumI = () => choice.reduce((s, k, i) => s + allPairs[i][k][2], 0);
+    const sumJst = () => choice.reduce((s, k, i) => s + allPairs[i][k][3], 0);
+    const scoreState = () => {
+      const iDiff = Math.abs(sumI() - target);
+      const jst = sumJst();
+      const jOver = Math.max(0, Math.abs(jst) - mpLimit);
+      return iDiff * 100 + jOver * 500 - jActivity() * 0.15;
+    };
+
+    let bestChoice = choice.slice();
+    let bestScore = scoreState();
+
+    for (let step = 0; step < 3000; step++) {
+      const iDiff = sumI() - target;
+      const curJst = sumJst();
+      if (iDiff === 0 && Math.abs(curJst) <= mpLimit) break;
+
       let bestMove = null;
-      let bestScore = Infinity;
+      let bestMoveScore = Infinity;
+      const curI = sumI();
 
       for (let i = 0; i < n; i++) {
         const curCi = allPairs[i][choice[i]][2];
+        const curJi = allPairs[i][choice[i]][3];
         allPairs[i].forEach((pair, k) => {
           if (k === choice[i]) return;
-          const delta = pair[2] - curCi;
-          if (sign * delta <= 0) return;
-                const score = Math.abs(cur + delta - target) + 0.01 * pair[5] + Math.random() * 0.03;
-          if (score < bestScore) { bestScore = score; bestMove = [i, k]; }
+          const newI = curI + pair[2] - curCi;
+          const newJst = curJst + pair[3] - curJi;
+          const iDiffNew = Math.abs(newI - target);
+          const jOver = Math.max(0, Math.abs(newJst) - mpLimit);
+          const jAct = Math.abs(pair[0]) + Math.abs(pair[1]);
+          const moveScore = iDiffNew * 100 + jOver * 500 - jAct * 0.15 + Math.random() * 0.05;
+          if (moveScore < bestMoveScore) {
+            bestMoveScore = moveScore;
+            bestMove = [i, k];
+          }
         });
-      }
-      if (!bestMove) {
-        for (let i = 0; i < n; i++) {
-          const curCi = allPairs[i][choice[i]][2];
-          allPairs[i].forEach((pair, k) => {
-            if (k === choice[i]) return;
-            const delta = pair[2] - curCi;
-                const score = Math.abs(cur + delta - target) + 0.01 * pair[5] + Math.random() * 0.03;
-            if (score < bestScore) { bestScore = score; bestMove = [i, k]; }
-          });
-        }
       }
       if (!bestMove) break;
       choice[bestMove[0]] = bestMove[1];
-      const newDiff = Math.abs(totalI() - target);
-      if (newDiff < bestDiff) {
-        bestDiff = newDiff;
+      const sc = scoreState();
+      if (sc < bestScore) {
+        bestScore = sc;
         bestChoice = choice.slice();
       }
-      if (newDiff >= bestDiff && step >= 500) {
+      if (step >= 800 && sc >= bestScore) {
         choice.splice(0, choice.length, ...bestChoice);
         break;
       }
@@ -506,17 +556,43 @@
     const chenhHList = phanBoChenhHDaDau(n, hTong);
     const chenhIList = phanBoNguyen(taoTrongSo(n), iTong);
     const metaSel = Array.from({ length: n }, (_, i) => taoMetaTram(i + 1, k1, k2));
+    const offsetList = taoDanhSachOffsetH(n);
 
     const stations = metaSel.map((meta, i) => {
       const tram = i + 1;
-      const st = taoStadiaVaH(kcSauList[i], kcTruocList[i], chenhHList[i], midEList[i]);
-      return { tram, i, meta, ...st, chenhITgt: chenhIList[i], chenhH: chenhHList[i] };
+      const { offS, offT } = offsetList[i];
+      const st = taoStadiaVaH(kcSauList[i], kcTruocList[i], chenhHList[i], midEList[i], offS, offT);
+      const chenhHThuc = st.hS - st.hT;
+      return { tram, i, meta, ...st, chenhITgt: chenhIList[i], chenhH: chenhHThuc };
     });
+
+    let sumH = stations.reduce((s, st) => s + (st.hS - st.hT), 0);
+    let driftH = Math.round(hTong) - Math.round(sumH);
+    if (driftH !== 0 && stations.length) {
+      const last = stations[stations.length - 1];
+      const midC = (last.cS + last.cT) / 2;
+      const midE2 = (last.eS + last.eT) / 2;
+      let newHS = last.hS + driftH;
+      if (Math.abs(newHS - midC) <= GIOI_HAN_OFFSET_H) {
+        last.hS = newHS;
+      } else {
+        let newHT = last.hT - driftH;
+        if (Math.abs(newHT - midE2) <= GIOI_HAN_OFFSET_H) {
+          last.hT = newHT;
+        } else {
+          newHS = last.hS + driftH;
+          last.hS = Math.round(midC) + clamp(newHS - Math.round(midC), -4, 4);
+        }
+      }
+      last.chenhH = last.hS - last.hT;
+    }
 
     const allPairs = stations.map(({ tram, meta, hS, hT, chenhITgt, chenhH }) =>
       feasibleJPairs(hS, hT, tram, k1, k2, deltaK, meta, chenhITgt, chenhH)
     );
-    const jChoices = chonJToanTuyen(allPairs, iTong);
+    const lKm = (lSau + lTruoc) / 2 / 1000;
+    const mp = 20 * Math.sqrt(lKm);
+    const jChoices = chonJToanTuyen(allPairs, iTong, mp);
 
     const docList = stations.map(({ tram, i, meta, cS, cT, eS, eT, hS, hT }, idx) => {
       const [jS, jT] = jChoices[idx];
@@ -548,7 +624,16 @@
     return false;
   }
 
-  function ketQuaHopLe(docList, metaSel, k1, k2, deltaK, hTong, iTong, kcSauMin, kcSauMax, n) {
+  function coSaiSoThucTe(docList, metaSel, k1, k2, deltaK) {
+    for (let i = 0; i < docList.length; i++) {
+      const kq = tinhKetQuaTram(docList[i], k1, k2, deltaK, i + 1, metaSel[i].nS, metaSel[i].nT);
+      if (Math.abs(kq.saiSoHS) > 0.01 || Math.abs(kq.saiSoHT) > 0.01) return true;
+      if (Math.abs(kq.jS) > 0 || Math.abs(kq.jT) > 0) return true;
+    }
+    return false;
+  }
+
+  function ketQuaHopLe(docList, metaSel, k1, k2, deltaK, hTong, iTong, kcSauMin, kcSauMax, n, requireRealism) {
     const hang4 = kiemTraHang4(docList, k1, k2, deltaK, metaSel);
     const kt = tongKiemTra(docList, k1, k2, deltaK, metaSel);
     const bad = hang4.filter(h => !(
@@ -565,29 +650,31 @@
       }
     }
     if (!coKAmDuong(docList, metaSel, k1, k2, deltaK, n, hTong)) return false;
-    return true;
+    if (requireRealism !== false && !coSaiSoThucTe(docList, metaSel, k1, k2, deltaK)) return false;
+    const tong = tongCot(docList, k1, k2, deltaK, metaSel);
+    const kqTH = tinhKetQuaTongHop({
+      soTram: n, k1, k2, deltaK,
+      lSau: kt.lSau, lTruoc: kt.lTruoc,
+      hTong: kt.hTong, iTong: kt.iTong,
+      tongJSt: tong.jSt,
+    });
+    return kqTH.datTongHop;
   }
 
   function phanBoTram(n, k1, k2, lSau, lTruoc, hTong, iTong, deltaK, kcSauMin, kcSauMax) {
     if (!kcSauKhaThi(n, lSau, kcSauMin, kcSauMax)) return null;
-    for (let attempt = 0; attempt < 15; attempt++) {
-      const weights = attempt < 14 ? taoTrongSo(n) : Array(n).fill(1);
-      const midEList = taoMidEList(n);
+    for (let attempt = 0; attempt < 50; attempt++) {
+      const weights = attempt < 49 ? taoTrongSo(n) : Array(n).fill(1);
+      const midEList = attempt < 49 ? taoMidEList(n) : Array.from({ length: n }, (_, i) => 2000 + i * 10);
       const result = phanBoTramOnce(
         n, k1, k2, lSau, lTruoc, hTong, iTong, deltaK, weights, midEList, kcSauMin, kcSauMax
       );
       if (!result) continue;
-      if (ketQuaHopLe(result.docList, result.metaSel, k1, k2, deltaK, hTong, iTong, kcSauMin, kcSauMax, n)) {
+      if (ketQuaHopLe(result.docList, result.metaSel, k1, k2, deltaK, hTong, iTong, kcSauMin, kcSauMax, n, attempt < 49)) {
         return result;
       }
     }
-    const weights = Array(n).fill(1);
-    const midEList = taoMidEList(n);
-    return phanBoTramOnce(n, k1, k2, lSau, lTruoc, hTong, iTong, deltaK, weights, midEList, kcSauMin, kcSauMax)
-      || phanBoTramOnce(
-        n, k1, k2, lSau, lTruoc, hTong, iTong, deltaK, weights,
-        Array.from({ length: n }, (_, i) => 2000 + i * 10), kcSauMin, kcSauMax
-      );
+    return null;
   }
 
   function tongKiemTra(docList, k1, k2, deltaK, metaSel) {
@@ -630,14 +717,22 @@
   }
 
   function tinhKetQuaTongHop(dauVao) {
-    const deltaL = dauVao.lSau - dauVao.lTruoc;
-    const lKm = (dauVao.lSau + dauVao.lTruoc) / 2 / 1000;
+    const lSau = dauVao.lSau;
+    const lTruoc = dauVao.lTruoc;
+    const hTong = dauVao.hTong;
+    const iTong = dauVao.iTong;
+    const deltaL = lSau - lTruoc;
+    const lKm = (lSau + lTruoc) / 2 / 1000;
     const mp = 20 * Math.sqrt(lKm);
-    const deltaHi = dauVao.iTong - dauVao.hTong;
+    const deltaHi = iTong - hTong;
     const deltaKKyVong = dauVao.deltaK * (dauVao.soTram / 2);
     const gioiHanChenhKc = 0.5 * dauVao.soTram;
     const lechKLuanPhien = Math.abs(deltaHi - deltaKKyVong) <= dauVao.deltaK;
     const lechKTongHop = Math.abs(deltaHi - dauVao.deltaK) <= dauVao.deltaK;
+    const tongJSt = dauVao.tongJSt != null ? dauVao.tongJSt : 0;
+    const datChenhKc = Math.abs(deltaL) <= gioiHanChenhKc;
+    const datKhepVong = Math.abs(tongJSt) <= mp;
+    const datKiemTraK = lechKLuanPhien || lechKTongHop;
     return {
       deltaL,
       lKm,
@@ -645,9 +740,29 @@
       deltaHi,
       deltaKKyVong,
       gioiHanChenhKc,
-      datChenhKc: Math.abs(deltaL) <= gioiHanChenhKc,
-      datKhepVong: Math.abs(dauVao.hTong) <= mp,
-      datKiemTraK: lechKLuanPhien || lechKTongHop,
+      tongJSt,
+      datChenhKc,
+      datKhepVong,
+      datKiemTraK,
+      datTongHop: datChenhKc && datKhepVong && datKiemTraK,
+    };
+  }
+
+  function kiemTraDauVao(inp, nTram) {
+    const kq = tinhKetQuaTongHop({
+      soTram: nTram,
+      k1: inp.k1,
+      k2: inp.k2,
+      deltaK: inp.deltaK,
+      lSau: inp.lSau,
+      lTruoc: inp.lTruoc,
+      hTong: inp.hTong,
+      iTong: inp.iTong,
+      tongJSt: 0,
+    });
+    return {
+      ok: kq.datChenhKc && kq.datKiemTraK,
+      kq,
     };
   }
 
@@ -901,6 +1016,23 @@
       alertKc.textContent = '';
     }
 
+    const alertTongHop = document.getElementById('alertTongHop');
+    const dv = kiemTraDauVao(inp, nTram);
+    if (!dv.ok) {
+      const parts = [];
+      if (!dv.kq.datChenhKc) {
+        parts.push(`chênh khoảng cách |ΔL|=${Math.abs(dv.kq.deltaL).toFixed(1)} m > ${dv.kq.gioiHanChenhKc} m`);
+      }
+      if (!dv.kq.datKiemTraK) {
+        parts.push(`kiểm tra K: |I−H−ΔK|=${Math.abs(dv.kq.deltaHi - inp.deltaK).toFixed(0)} mm > ${inp.deltaK} mm`);
+      }
+      alertTongHop.className = 'alert alert-error';
+      alertTongHop.textContent = `Tổng hợp nhập không đạt: ${parts.join('; ')}. Chỉnh L_sau/L_truoc hoặc H/I.`;
+      lastState = null;
+      return;
+    }
+    alertTongHop.textContent = '';
+
     const phanBo = phanBoTram(
       nTram, inp.k1, inp.k2, inp.lSau, inp.lTruoc, inp.hTong, inp.iTong, inp.deltaK,
       inp.kcSauMin, inp.kcSauMax
@@ -908,15 +1040,21 @@
     if (!phanBo) {
       alertKc.className = 'note';
       alertKc.style.color = 'var(--error)';
-      alertKc.textContent = 'Không tìm được phân bổ thỏa giới hạn KC sau — thử nới biên hoặc bấm Phân bổ lại.';
+      alertKc.textContent = 'Không tìm được phân bổ thỏa mọi tiêu chí — bấm Phân bổ lại hoặc nới biên KC sau.';
+      alertTongHop.className = 'alert alert-error';
+      alertTongHop.textContent = 'Không tìm được phân bổ đạt hạng IV và 3 tiêu chí tổng hợp sau 50 lần thử.';
+      lastState = null;
       return;
     }
     const { docList, metaSel } = phanBo;
     const kiemTra = tongKiemTra(docList, inp.k1, inp.k2, inp.deltaK, metaSel);
+    const tong = tongCot(docList, inp.k1, inp.k2, inp.deltaK, metaSel);
     const hang4 = kiemTraHang4(docList, inp.k1, inp.k2, inp.deltaK, metaSel);
     const kq = tinhKetQuaTongHop({
       soTram: nTram, k1: inp.k1, k2: inp.k2, deltaK: inp.deltaK,
-      lSau: inp.lSau, lTruoc: inp.lTruoc, hTong: inp.hTong, iTong: inp.iTong,
+      lSau: kiemTra.lSau, lTruoc: kiemTra.lTruoc,
+      hTong: kiemTra.hTong, iTong: kiemTra.iTong,
+      tongJSt: tong.jSt,
     });
 
     const previewRows = docList.map((doc, i) => {
@@ -967,15 +1105,28 @@
       alertEl.textContent = `Có ${viPham.length} trạm vi phạm: |H−mid| > 5 mm hoặc |J| > 2 mm.`;
     } else {
       alertEl.className = 'alert alert-success';
-      alertEl.textContent = 'Tất cả trạm đạt: |H−mid stadia| ≤ 5 mm, |J| ≤ 2 mm.';
+      alertEl.textContent = 'Tất cả trạm đạt: |H−mid stadia| ≤ 5 mm, |J| ≤ 2 mm (sai số trong ngưỡng cho phép).';
     }
 
     document.getElementById('metrics').innerHTML = `
       <div class="metric"><div class="label">Chênh khoảng cách</div><div class="value">${kq.deltaL.toFixed(1)} m</div></div>
       <div class="metric"><div class="label">Chiều dài tuyến L</div><div class="value">${kq.lKm.toFixed(3)} km</div></div>
       <div class="metric"><div class="label">Dung sai hạng 4</div><div class="value">±${kq.mp.toFixed(1)} mm</div></div>
+      <div class="metric"><div class="label">ΣJ (khép vòng)</div><div class="value">${kq.tongJSt} mm</div></div>
       <div class="metric"><div class="label">Chênh I − H</div><div class="value">${kq.deltaHi} mm</div></div>
     `;
+
+    if (kq.datTongHop) {
+      alertTongHop.className = 'alert alert-success';
+      alertTongHop.textContent = 'Kết luận tổng hợp: ĐẠT — cả 3 tiêu chí đều thỏa.';
+    } else {
+      alertTongHop.className = 'alert alert-error';
+      const fail = [];
+      if (!kq.datChenhKc) fail.push('chênh khoảng cách');
+      if (!kq.datKhepVong) fail.push('khép vòng');
+      if (!kq.datKiemTraK) fail.push('kiểm tra K');
+      alertTongHop.textContent = `Kết luận tổng hợp: KHÔNG ĐẠT — ${fail.join(', ')}.`;
+    }
 
     renderTable(
       document.querySelector('#tblTongHop thead'),
@@ -983,13 +1134,13 @@
       ['Tiêu chí', 'Kết quả'],
       [
         [`Chênh khoảng cách (|ΔL| ≤ ${kq.gioiHanChenhKc} m)`, statusText(kq.datChenhKc)],
-        [`Khép vòng cao độ (|H| ≤ ${kq.mp.toFixed(1)} mm)`, statusText(kq.datKhepVong)],
+        [`Khép vòng cao độ (|ΣJ| = ${Math.abs(kq.tongJSt)} mm ≤ ${kq.mp.toFixed(1)} mm)`, statusText(kq.datKhepVong)],
         ['Kiểm tra K', statusText(kq.datKiemTraK)],
       ]
     );
 
     document.getElementById('infoFile').textContent =
-      `File Excel gồm ${nTram} trạm — phân bổ không đều, mọi trạm đạt |H−mid| ≤ 5 mm và |J| ≤ 2 mm.`;
+      `File Excel gồm ${nTram} trạm — phân bổ đạt hạng IV và 3 tiêu chí tổng hợp.`;
 
     lastState = {
       inp, nTram, docList, metaSel,
