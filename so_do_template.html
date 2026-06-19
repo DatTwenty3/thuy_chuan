@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sổ đo thủy chuẩn hạng 4</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --card: #fff;
+      --border: #dde3ea;
+      --primary: #1565c0;
+      --success: #2e7d32;
+      --error: #c62828;
+      --muted: #5f6b7a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: #1a1a1a;
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+    h1 { margin: 0 0 0.25rem; font-size: 1.75rem; }
+    .caption { color: var(--muted); margin-bottom: 1.5rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+    .card h2 { margin: 0 0 1rem; font-size: 1.1rem; }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 0.2rem;
+    }
+    input {
+      width: 100%;
+      padding: 0.45rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.95rem;
+      margin-bottom: 0.75rem;
+    }
+    hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+    section { margin-top: 1.5rem; }
+    section h2 { font-size: 1.15rem; margin-bottom: 0.75rem; }
+    .table-wrap { overflow-x: auto; background: var(--card); border: 1px solid var(--border); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th, td { padding: 0.5rem 0.65rem; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: #eef2f7; font-weight: 600; white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin: 1rem 0; }
+    @media (max-width: 700px) { .metrics { grid-template-columns: repeat(2, 1fr); } }
+    .metric {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem;
+    }
+    .metric .label { font-size: 0.8rem; color: var(--muted); }
+    .metric .value { font-size: 1.25rem; font-weight: 600; margin-top: 0.15rem; }
+    .status-ok { color: var(--success); font-weight: 600; }
+    .status-fail { color: var(--error); font-weight: 600; }
+    .alert {
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      margin: 0.75rem 0;
+      font-size: 0.9rem;
+    }
+    .alert-success { background: #e8f5e9; border: 1px solid #a5d6a7; color: #1b5e20; }
+    .alert-error { background: #ffebee; border: 1px solid #ef9a9a; color: #b71c1c; }
+    .alert-info { background: #e3f2fd; border: 1px solid #90caf9; color: #0d47a1; }
+    .check-table td:last-child { font-weight: 600; }
+    .btn {
+      display: inline-block;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 0.65rem 1.25rem;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+    .btn:hover { background: #0d47a1; }
+    .note { font-size: 0.85rem; color: var(--muted); margin-top: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Sổ đo thủy chuẩn hạng 4</h1>
+    <p class="caption">Tự phân bổ không đều theo tổng hợp dự án — mọi trạm đạt hạng IV. Đổi thông số kỹ thuật hoặc bấm Phân bổ lại để có bộ số khác.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h2>Thông tin dự án</h2>
+        <label for="doTu">Đo từ</label>
+        <input id="doTu" type="text" value="(tên mốc mua)">
+        <label for="den">Đến</label>
+        <input id="den" type="text" value="(mốc GPSIV- gần nhất)">
+        <label for="batDau">Bắt đầu lúc</label>
+        <input id="batDau" type="text" value="">
+        <label for="ketThuc">Kết thúc lúc</label>
+        <input id="ketThuc" type="text" value="">
+        <label for="ngayDo">Ngày đo</label>
+        <input id="ngayDo" type="text" value="(theo nhật ký)">
+        <label for="thoiTiet">Thời tiết</label>
+        <input id="thoiTiet" type="text" value="">
+        <label for="nguoiDo">Người đo</label>
+        <input id="nguoiDo" type="text" value="">
+        <label for="nguoiGhi">Người ghi</label>
+        <input id="nguoiGhi" type="text" value="">
+        <label for="nguoiKiemTra">Người kiểm tra</label>
+        <input id="nguoiKiemTra" type="text" value="">
+      </div>
+      <div class="card">
+        <h2>Thông số kỹ thuật</h2>
+        <label for="nTram">Số trạm đo</label>
+        <input id="nTram" type="number" min="1" max="50" step="1" value="19">
+        <label for="k1">Hằng số K1 (mm)</label>
+        <input id="k1" type="number" step="1" value="4575">
+        <label for="k2">Hằng số K2 (mm)</label>
+        <input id="k2" type="number" step="1" value="4475">
+        <label for="deltaK">Chênh hằng số ΔK (mm)</label>
+        <input id="deltaK" type="number" step="1" value="100">
+        <hr>
+        <strong>Số tổng hợp</strong>
+        <label for="lSau">Tổng khoảng cách nhìn sau L_sau (m)</label>
+        <input id="lSau" type="number" step="0.1" value="1794.9">
+        <label for="kcSauMin">KC sau (m) — cận dưới mỗi trạm</label>
+        <input id="kcSauMin" type="number" step="0.1" min="0" placeholder="Không giới hạn">
+        <label for="kcSauMax">KC sau (m) — cận trên mỗi trạm</label>
+        <input id="kcSauMax" type="number" step="0.1" min="0" placeholder="Không giới hạn">
+        <p class="note" id="alertKcSau" style="margin-top:0;"></p>
+        <label for="lTruoc">Tổng khoảng cách nhìn trước L_truoc (m)</label>
+        <input id="lTruoc" type="number" step="0.1" value="1798.1">
+        <label for="hTong">Tổng chênh mặt đen H (mm)</label>
+        <input id="hTong" type="number" step="1" value="537">
+        <label for="iTong">Tổng chênh mặt đỏ I (mm)</label>
+        <input id="iTong" type="number" step="1" value="638">
+      </div>
+    </div>
+
+    <section>
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+        <h2 style="margin:0;">Số đo đã phân bổ từng trạm</h2>
+        <button class="btn" id="btnReshuffle" type="button" style="margin:0;padding:0.45rem 1rem;font-size:0.9rem;">Phân bổ lại</button>
+      </div>
+      <div class="table-wrap"><table id="tblPreview"><thead></thead><tbody></tbody></table></div>
+      <p class="note" id="tongTinhLai"></p>
+    </section>
+
+    <section>
+      <h2>Kiểm tra hạng IV (từng trạm)</h2>
+      <div id="alertHang4"></div>
+      <div class="table-wrap"><table id="tblHang4"><thead></thead><tbody></tbody></table></div>
+    </section>
+
+    <section>
+      <h2>Xem trước kiểm tra tổng hợp</h2>
+      <div class="metrics" id="metrics"></div>
+      <div class="table-wrap check-table">
+        <table id="tblTongHop"><thead><tr><th>Tiêu chí</th><th>Kết quả</th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <button class="btn" id="btnDownload" type="button">Tải file Excel</button>
+    <p class="note" id="infoFile"></p>
+  </div>
+
+  <script>{{EXCELJS}}</script>
+  <script>
+  const GIOI_HAN_OFFSET_H = 5;
+  const GIOI_HAN_J = 2;
+  const INPUT_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9C4' } };
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function taoTrongSo(n) {
+    return Array.from({ length: n }, () => 0.35 + Math.random() * 1.3);
+  }
+
+  function taoMidEList(n) {
+    let mid = Math.round(1950 + Math.random() * 100);
+    const list = [mid];
+    for (let i = 1; i < n; i++) {
+      mid += 8 + Math.floor(Math.random() * 18);
+      list.push(mid);
+    }
+    return list;
+  }
+
+  function taoKcTruocTuSau(kcSauList, lTruoc) {
+    const n = kcSauList.length;
+    const clampKt = (i, val) => clamp(val, kcSauList[i] - 5, kcSauList[i] + 5);
+
+    let kcTruoc = kcSauList.map((ks, i) => {
+      const jitter = Math.round((Math.random() * 9 - 4.5) * 10) / 10;
+      return clampKt(i, Math.round((ks + jitter) * 10) / 10);
+    });
+    kcTruoc = kcTruoc.map((kt, i) => clampKt(i, kt));
+
+    let err = Math.round((lTruoc - kcTruoc.reduce((a, b) => a + b, 0)) * 10) / 10;
+    for (let pass = 0; pass < n * 4 && Math.abs(err) > 0.05; pass++) {
+      const i = pass % n;
+      const roomHi = kcSauList[i] + 5 - kcTruoc[i];
+      const roomLo = kcTruoc[i] - (kcSauList[i] - 5);
+      const step = err > 0
+        ? Math.min(roomHi, err)
+        : -Math.min(roomLo, -err);
+      if (Math.abs(step) < 0.05) continue;
+      kcTruoc[i] = Math.round((kcTruoc[i] + step) * 10) / 10;
+      err = Math.round((err - step) * 10) / 10;
+    }
+    if (Math.abs(err) > 0.15) {
+      const i = n - 1;
+      const next = clampKt(i, Math.round((kcTruoc[i] + err) * 10) / 10);
+      if (Math.abs(next - kcSauList[i]) > 5) return null;
+      kcTruoc[i] = next;
+    }
+    if (kcTruoc.some((kt, i) => Math.abs(kt - kcSauList[i]) > 5.01)) return null;
+    return kcTruoc;
+  }
+
+  function phanBoTheoTyLe(values, tongMoi) {
+    if (!values.length) return [];
+    const s = values.reduce((a, b) => a + b, 0);
+    let parts;
+    if (s === 0) {
+      const base = tongMoi / values.length;
+      parts = values.map(() => base);
+    } else {
+      parts = values.map(v => v / s * tongMoi);
+    }
+    parts[parts.length - 1] = Math.round((tongMoi - parts.slice(0, -1).reduce((a, b) => a + b, 0)) * 10000) / 10000;
+    return parts;
+  }
+
+  function kcSauKhaThi(n, lSau, kcMin, kcMax) {
+    if (kcMin != null && kcMax != null && kcMin > kcMax) return false;
+    if (lSau <= 0 || n < 1) return false;
+    const lo = kcMin ?? 0;
+    const hi = kcMax ?? Infinity;
+    return n * lo - 0.05 <= lSau && lSau <= n * hi + 0.05;
+  }
+
+  function phanBoKcSauCoGioiHan(weights, lSau, kcMin, kcMax) {
+    if (kcMin == null && kcMax == null) {
+      return phanBoTheoTyLe(weights, lSau);
+    }
+    const n = weights.length;
+    if (!kcSauKhaThi(n, lSau, kcMin, kcMax)) return null;
+
+    const lo = kcMin ?? 0;
+    const hi = kcMax ?? Infinity;
+    let parts = phanBoTheoTyLe(weights, lSau).map((p) =>
+      Math.round(clamp(p, lo, hi) * 10) / 10
+    );
+
+    let err = Math.round((lSau - parts.reduce((a, b) => a + b, 0)) * 10) / 10;
+    for (let pass = 0; pass < n * 8 && Math.abs(err) > 0.05; pass++) {
+      const i = pass % n;
+      const roomHi = hi - parts[i];
+      const roomLo = parts[i] - lo;
+      const step = err > 0
+        ? Math.min(roomHi, err)
+        : -Math.min(roomLo, -err);
+      if (Math.abs(step) < 0.01) continue;
+      parts[i] = Math.round((parts[i] + step) * 10) / 10;
+      err = Math.round((err - step) * 10) / 10;
+    }
+    if (Math.abs(err) > 0.05) {
+      const i = n - 1;
+      parts[i] = Math.round(clamp(parts[i] + err, lo, hi) * 10) / 10;
+    }
+
+    const sum = Math.round(parts.reduce((a, b) => a + b, 0) * 10) / 10;
+    if (Math.abs(sum - lSau) > 0.15) return null;
+    if (parts.some((p) => p < lo - 0.01 || p > hi + 0.01)) return null;
+    return parts;
+  }
+
+  function phanBoNguyen(values, tongMoi) {
+    const floats = phanBoTheoTyLe(values, tongMoi);
+    const parts = floats.map(v => Math.round(v));
+    parts[parts.length - 1] = Math.round(tongMoi) - parts.slice(0, -1).reduce((a, b) => a + b, 0);
+    return parts;
+  }
+
+  function phanBoChenhHDaDau(n, hTong) {
+    if (n < 2 || hTong === 0) {
+      return phanBoNguyen(taoTrongSo(n), hTong);
+    }
+    const nNeg = 1 + Math.floor(Math.random() * (n - 1));
+    const negMag = Math.max(1, Math.round(Math.abs(hTong) * (0.15 + Math.random() * 0.25)));
+    const negSum = -negMag;
+    const posSum = hTong - negSum;
+    if (posSum <= 0) {
+      return phanBoNguyen(taoTrongSo(n), hTong);
+    }
+
+    const indices = Array.from({ length: n }, (_, i) => i);
+    for (let i = n - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    const negSet = new Set(indices.slice(0, nNeg));
+    const negWeights = [];
+    const posWeights = [];
+    const negIdx = [];
+    const posIdx = [];
+    for (let i = 0; i < n; i++) {
+      const w = 0.35 + Math.random() * 1.3;
+      if (negSet.has(i)) {
+        negWeights.push(w);
+        negIdx.push(i);
+      } else {
+        posWeights.push(w);
+        posIdx.push(i);
+      }
+    }
+
+    const negParts = phanBoNguyen(negWeights, negSum);
+    const posParts = phanBoNguyen(posWeights, posSum);
+    const result = Array(n).fill(0);
+    negIdx.forEach((i, k) => { result[i] = negParts[k]; });
+    posIdx.forEach((i, k) => { result[i] = posParts[k]; });
+    const drift = Math.round(hTong) - result.reduce((a, b) => a + b, 0);
+    result[result.length - 1] += drift;
+    return result;
+  }
+
+  function taoMetaTram(tram, k1, k2) {
+    const labelS = tram % 2 === 1 ? 'K1' : 'K2';
+    const labelT = tram % 2 === 1 ? 'K2' : 'K1';
+    return {
+      labelS,
+      labelT,
+      nS: labelS === 'K1' ? k1 : k2,
+      nT: labelT === 'K1' ? k1 : k2,
+    };
+  }
+
+  function taoStadiaVaH(kcSau, kcTruoc, chenhH, midE) {
+    const midC = midE + chenhH;
+    return {
+      cS: Math.round(midC + 5 * kcSau),
+      cT: Math.round(midC - 5 * kcSau),
+      eS: Math.round(midE + 5 * kcTruoc),
+      eT: Math.round(midE - 5 * kcTruoc),
+      hS: midC,
+      hT: midE,
+    };
+  }
+
+  function iFromJ(hS, hT, tram, k1, k2, deltaK, meta, jS, jT) {
+    if (tram === 2) {
+      return {
+        iS: Math.round(k1 + hS - deltaK - jS),
+        iT: Math.round(k2 + hT + deltaK - jT),
+      };
+    }
+    return {
+      iS: Math.round(meta.nS + hS - jS),
+      iT: Math.round(meta.nT + hT - jT),
+    };
+  }
+
+  function chenhIForJ(hS, hT, tram, k1, k2, deltaK, meta, jS, jT) {
+    const { iS, iT } = iFromJ(hS, hT, tram, k1, k2, deltaK, meta, jS, jT);
+    return iS - iT;
+  }
+
+  function feasibleJPairs(hS, hT, tram, k1, k2, deltaK, meta, chenhITarget, chenhH) {
+    const pairs = [];
+    const seen = new Set();
+    for (let jS = -2; jS <= 2; jS++) {
+      for (let jT = -2; jT <= 2; jT++) {
+        const jSt = jS - jT;
+        if (Math.abs(jSt) > GIOI_HAN_J) continue;
+        const chenhI = chenhIForJ(hS, hT, tram, k1, k2, deltaK, meta, jS, jT);
+        const chenhCao = chenhH - jSt;
+        const key = `${jS},${jT},${chenhI}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const cost = (
+          Math.abs(chenhI - chenhITarget)
+          - 0.008 * (Math.abs(jS) + Math.abs(jT))
+          + Math.random() * 0.05
+        );
+        pairs.push([jS, jT, chenhI, jSt, chenhCao, cost]);
+      }
+    }
+    return pairs;
+  }
+
+  function chonJToanTuyen(allPairs, iTong) {
+    const n = allPairs.length;
+    const choice = allPairs.map((pairs, i) => {
+      let bestK = 0;
+      let bestCost = Infinity;
+      pairs.forEach((p, k) => {
+        if (p[5] < bestCost) { bestCost = p[5]; bestK = k; }
+      });
+      return bestK;
+    });
+    const target = Math.round(iTong);
+    const totalI = () => choice.reduce((s, k, i) => s + allPairs[i][k][2], 0);
+    let bestChoice = choice.slice();
+    let bestDiff = Math.abs(totalI() - target);
+
+    for (let step = 0; step < 2000; step++) {
+      const cur = totalI();
+      const diff = target - cur;
+      if (diff === 0) break;
+      const sign = diff > 0 ? 1 : -1;
+      let bestMove = null;
+      let bestScore = Infinity;
+
+      for (let i = 0; i < n; i++) {
+        const curCi = allPairs[i][choice[i]][2];
+        allPairs[i].forEach((pair, k) => {
+          if (k === choice[i]) return;
+          const delta = pair[2] - curCi;
+          if (sign * delta <= 0) return;
+                const score = Math.abs(cur + delta - target) + 0.01 * pair[5] + Math.random() * 0.03;
+          if (score < bestScore) { bestScore = score; bestMove = [i, k]; }
+        });
+      }
+      if (!bestMove) {
+        for (let i = 0; i < n; i++) {
+          const curCi = allPairs[i][choice[i]][2];
+          allPairs[i].forEach((pair, k) => {
+            if (k === choice[i]) return;
+            const delta = pair[2] - curCi;
+                const score = Math.abs(cur + delta - target) + 0.01 * pair[5] + Math.random() * 0.03;
+            if (score < bestScore) { bestScore = score; bestMove = [i, k]; }
+          });
+        }
+      }
+      if (!bestMove) break;
+      choice[bestMove[0]] = bestMove[1];
+      const newDiff = Math.abs(totalI() - target);
+      if (newDiff < bestDiff) {
+        bestDiff = newDiff;
+        bestChoice = choice.slice();
+      }
+      if (newDiff >= bestDiff && step >= 500) {
+        choice.splice(0, choice.length, ...bestChoice);
+        break;
+      }
+    }
+    return bestChoice.map((k, i) => [allPairs[i][k][0], allPairs[i][k][1]]);
+  }
+
+  function tinhKetQuaTram(doc, k1, k2, deltaK, tram, nS, nT) {
+    const kcSau = (doc.cS - doc.cT) / 10;
+    const kcTruoc = (doc.eS - doc.eT) / 10;
+    const chenhH = doc.hS - doc.hT;
+    const chenhI = doc.iS - doc.iT;
+    const midC = (doc.cS + doc.cT) / 2;
+    const midE = (doc.eS + doc.eT) / 2;
+    const saiSoHS = doc.hS - midC;
+    const saiSoHT = doc.hT - midE;
+    let jS, jT;
+    if (tram === 2) {
+      jS = k1 + doc.hS - doc.iS - deltaK;
+      jT = k2 + doc.hT - doc.iT + deltaK;
+    } else {
+      const ns = nS != null ? nS : k1;
+      const nt = nT != null ? nT : k2;
+      jS = ns + doc.hS - doc.iS;
+      jT = nt + doc.hT - doc.iT;
+    }
+    const jSt = jS - jT;
+    const chenhCao = chenhH - jSt;
+    return {
+      doc,
+      kcSau,
+      kcTruoc,
+      chenhH,
+      chenhI,
+      jS: Math.round(jS),
+      jT: Math.round(jT),
+      jSt: Math.round(jSt),
+      chenhCao: Math.round(chenhCao),
+      chenhKc: Math.round((kcSau - kcTruoc) * 10000) / 10000,
+      saiSoHS: Math.round(saiSoHS * 100) / 100,
+      saiSoHT: Math.round(saiSoHT * 100) / 100,
+    };
+  }
+
+  function phanBoTramOnce(n, k1, k2, lSau, lTruoc, hTong, iTong, deltaK, weights, midEList, kcSauMin, kcSauMax) {
+    const kcSauList = phanBoKcSauCoGioiHan(weights, lSau, kcSauMin, kcSauMax);
+    if (!kcSauList) return null;
+    const kcTruocList = taoKcTruocTuSau(kcSauList, lTruoc);
+    if (!kcTruocList) return null;
+
+    const chenhHList = phanBoChenhHDaDau(n, hTong);
+    const chenhIList = phanBoNguyen(taoTrongSo(n), iTong);
+    const metaSel = Array.from({ length: n }, (_, i) => taoMetaTram(i + 1, k1, k2));
+
+    const stations = metaSel.map((meta, i) => {
+      const tram = i + 1;
+      const st = taoStadiaVaH(kcSauList[i], kcTruocList[i], chenhHList[i], midEList[i]);
+      return { tram, i, meta, ...st, chenhITgt: chenhIList[i], chenhH: chenhHList[i] };
+    });
+
+    const allPairs = stations.map(({ tram, meta, hS, hT, chenhITgt, chenhH }) =>
+      feasibleJPairs(hS, hT, tram, k1, k2, deltaK, meta, chenhITgt, chenhH)
+    );
+    const jChoices = chonJToanTuyen(allPairs, iTong);
+
+    const docList = stations.map(({ tram, i, meta, cS, cT, eS, eT, hS, hT }, idx) => {
+      const [jS, jT] = jChoices[idx];
+      const ii = iFromJ(hS, hT, tram, k1, k2, deltaK, meta, jS, jT);
+      return {
+        cS: Math.round(cS * 10) / 10,
+        cT: Math.round(cT * 10) / 10,
+        eS: Math.round(eS * 10) / 10,
+        eT: Math.round(eT * 10) / 10,
+        hS,
+        iS: ii.iS,
+        hT,
+        iT: ii.iT,
+      };
+    });
+    return { docList, metaSel };
+  }
+
+  function coKAmDuong(docList, metaSel, k1, k2, deltaK, n, hTong) {
+    if (n < 2 || hTong === 0) return true;
+    let hasPos = false;
+    let hasNeg = false;
+    for (let i = 0; i < docList.length; i++) {
+      const kq = tinhKetQuaTram(docList[i], k1, k2, deltaK, i + 1, metaSel[i].nS, metaSel[i].nT);
+      if (kq.chenhCao > 0) hasPos = true;
+      if (kq.chenhCao < 0) hasNeg = true;
+      if (hasPos && hasNeg) return true;
+    }
+    return false;
+  }
+
+  function ketQuaHopLe(docList, metaSel, k1, k2, deltaK, hTong, iTong, kcSauMin, kcSauMax, n) {
+    const hang4 = kiemTraHang4(docList, k1, k2, deltaK, metaSel);
+    const kt = tongKiemTra(docList, k1, k2, deltaK, metaSel);
+    const bad = hang4.filter(h => !(
+      h.datKc5m && h.datHS5mm && h.datHT5mm && h.datJS && h.datJT && h.datJSt
+    ));
+    if (bad.length) return false;
+    if (Math.abs(kt.hTong - hTong) > 1 || Math.abs(kt.iTong - iTong) > 2) return false;
+    if (kcSauMin != null || kcSauMax != null) {
+      const lo = kcSauMin ?? 0;
+      const hi = kcSauMax ?? Infinity;
+      for (let i = 0; i < docList.length; i++) {
+        const kc = (docList[i].cS - docList[i].cT) / 10;
+        if (kc < lo - 0.01 || kc > hi + 0.01) return false;
+      }
+    }
+    if (!coKAmDuong(docList, metaSel, k1, k2, deltaK, n, hTong)) return false;
+    return true;
+  }
+
+  function phanBoTram(n, k1, k2, lSau, lTruoc, hTong, iTong, deltaK, kcSauMin, kcSauMax) {
+    if (!kcSauKhaThi(n, lSau, kcSauMin, kcSauMax)) return null;
+    for (let attempt = 0; attempt < 15; attempt++) {
+      const weights = attempt < 14 ? taoTrongSo(n) : Array(n).fill(1);
+      const midEList = taoMidEList(n);
+      const result = phanBoTramOnce(
+        n, k1, k2, lSau, lTruoc, hTong, iTong, deltaK, weights, midEList, kcSauMin, kcSauMax
+      );
+      if (!result) continue;
+      if (ketQuaHopLe(result.docList, result.metaSel, k1, k2, deltaK, hTong, iTong, kcSauMin, kcSauMax, n)) {
+        return result;
+      }
+    }
+    const weights = Array(n).fill(1);
+    const midEList = taoMidEList(n);
+    return phanBoTramOnce(n, k1, k2, lSau, lTruoc, hTong, iTong, deltaK, weights, midEList, kcSauMin, kcSauMax)
+      || phanBoTramOnce(
+        n, k1, k2, lSau, lTruoc, hTong, iTong, deltaK, weights,
+        Array.from({ length: n }, (_, i) => 2000 + i * 10), kcSauMin, kcSauMax
+      );
+  }
+
+  function tongKiemTra(docList, k1, k2, deltaK, metaSel) {
+    let tongKcSau = 0, tongKcTruoc = 0, tongChenhH = 0, tongChenhI = 0;
+    docList.forEach((doc, i) => {
+      const meta = metaSel ? metaSel[i] : null;
+      const kq = tinhKetQuaTram(doc, k1, k2, deltaK, i + 1, meta?.nS, meta?.nT);
+      tongKcSau += kq.kcSau;
+      tongKcTruoc += kq.kcTruoc;
+      tongChenhH += kq.chenhH;
+      tongChenhI += kq.chenhI;
+    });
+    return {
+      lSau: Math.round(tongKcSau * 10000) / 10000,
+      lTruoc: Math.round(tongKcTruoc * 10000) / 10000,
+      hTong: Math.round(tongChenhH * 10000) / 10000,
+      iTong: Math.round(tongChenhI * 10000) / 10000,
+    };
+  }
+
+  function kiemTraHang4(docList, k1, k2, deltaK, metaSel) {
+    return docList.map((doc, i) => {
+      const meta = metaSel ? metaSel[i] : null;
+      const kq = tinhKetQuaTram(doc, k1, k2, deltaK, i + 1, meta?.nS, meta?.nT);
+      return {
+        tram: i + 1,
+        datKc5m: Math.abs(kq.kcSau - kq.kcTruoc) <= 5,
+        datHS5mm: Math.abs(kq.saiSoHS) <= GIOI_HAN_OFFSET_H,
+        datHT5mm: Math.abs(kq.saiSoHT) <= GIOI_HAN_OFFSET_H,
+        datJS: Math.abs(kq.jS) <= GIOI_HAN_J,
+        datJT: Math.abs(kq.jT) <= GIOI_HAN_J,
+        datJSt: Math.abs(kq.jSt) <= GIOI_HAN_J,
+        saiHS: kq.saiSoHS,
+        saiHT: kq.saiSoHT,
+        jS: kq.jS,
+        jT: kq.jT,
+        chenhCao: kq.chenhCao,
+      };
+    });
+  }
+
+  function tinhKetQuaTongHop(dauVao) {
+    const deltaL = dauVao.lSau - dauVao.lTruoc;
+    const lKm = (dauVao.lSau + dauVao.lTruoc) / 2 / 1000;
+    const mp = 20 * Math.sqrt(lKm);
+    const deltaHi = dauVao.iTong - dauVao.hTong;
+    const deltaKKyVong = dauVao.deltaK * (dauVao.soTram / 2);
+    const gioiHanChenhKc = 0.5 * dauVao.soTram;
+    const lechKLuanPhien = Math.abs(deltaHi - deltaKKyVong) <= dauVao.deltaK;
+    const lechKTongHop = Math.abs(deltaHi - dauVao.deltaK) <= dauVao.deltaK;
+    return {
+      deltaL,
+      lKm,
+      mp,
+      deltaHi,
+      deltaKKyVong,
+      gioiHanChenhKc,
+      datChenhKc: Math.abs(deltaL) <= gioiHanChenhKc,
+      datKhepVong: Math.abs(dauVao.hTong) <= mp,
+      datKiemTraK: lechKLuanPhien || lechKTongHop,
+    };
+  }
+
+  function readOptionalFloat(id) {
+    const raw = document.getElementById(id).value.trim();
+    if (raw === '') return null;
+    const n = parseFloat(raw);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function readInputs() {
+    return {
+      duAn: {
+        doTu: document.getElementById('doTu').value,
+        den: document.getElementById('den').value,
+        batDau: document.getElementById('batDau').value,
+        ketThuc: document.getElementById('ketThuc').value,
+        ngayDo: document.getElementById('ngayDo').value,
+        thoiTiet: document.getElementById('thoiTiet').value,
+        nguoiDo: document.getElementById('nguoiDo').value,
+        nguoiGhi: document.getElementById('nguoiGhi').value,
+        nguoiKiemTra: document.getElementById('nguoiKiemTra').value,
+      },
+      nTram: parseInt(document.getElementById('nTram').value, 10) || 1,
+      k1: parseFloat(document.getElementById('k1').value) || 4575,
+      k2: parseFloat(document.getElementById('k2').value) || 4475,
+      deltaK: parseFloat(document.getElementById('deltaK').value) || 100,
+      lSau: parseFloat(document.getElementById('lSau').value) || 0,
+      kcSauMin: readOptionalFloat('kcSauMin'),
+      kcSauMax: readOptionalFloat('kcSauMax'),
+      lTruoc: parseFloat(document.getElementById('lTruoc').value) || 0,
+      hTong: parseFloat(document.getElementById('hTong').value) || 0,
+      iTong: parseFloat(document.getElementById('iTong').value) || 0,
+    };
+  }
+
+  function stationRows(nTram) {
+    const sRows = [], tRows = [];
+    for (let i = 0; i < nTram; i++) {
+      sRows.push(13 + i * 4);
+      tRows.push(14 + i * 4);
+    }
+    return { sRows, tRows };
+  }
+
+  function sumFormula(col, rows) {
+    return `SUM(${rows.map(r => `${col}${r}`).join(',')})`;
+  }
+
+  function setCell(ws, addr, value, opts = {}) {
+    const cell = ws.getCell(addr);
+    if (opts.formula) {
+      cell.value = { formula: opts.formula, result: value ?? undefined };
+    } else {
+      cell.value = value;
+    }
+    if (opts.fill) cell.fill = opts.fill;
+  }
+
+  function writeHeader(ws, duAn) {
+    ws.getCell('A1').value = 'SỔ ĐO THỦY CHUẨN HẠNG 4';
+    ws.getCell('A3').value = 'Đo từ:'; ws.getCell('C3').value = duAn.doTu;
+    ws.getCell('H3').value = 'Đến:'; ws.getCell('J3').value = duAn.den;
+    ws.getCell('A4').value = 'Bắt đầu lúc:'; ws.getCell('C4').value = duAn.batDau;
+    ws.getCell('H4').value = 'Ngày đo:'; ws.getCell('J4').value = duAn.ngayDo;
+    ws.getCell('A5').value = 'Kết thúc lúc:'; ws.getCell('C5').value = duAn.ketThuc;
+    ws.getCell('H5').value = 'Người đo:'; ws.getCell('J5').value = duAn.nguoiDo;
+    ws.getCell('A6').value = 'Thời tiết:'; ws.getCell('C6').value = duAn.thoiTiet;
+    ws.getCell('H6').value = 'Người ghi:'; ws.getCell('J6').value = duAn.nguoiGhi;
+    ws.getCell('H7').value = 'Người kiểm tra:'; ws.getCell('J7').value = duAn.nguoiKiemTra;
+    const labels = {
+      'A9': 'Số', 'B9': 'Mia', 'C9': 'Chỉ trên', 'D9': 'Mia', 'E9': 'Chỉ trên', 'F9': 'Ký',
+      'H9': 'Số đọc trên mia', 'J9': 'K', 'K9': 'Chênh',
+      'A10': 'trạm', 'B10': 'sau', 'C10': 'Chỉ dưới', 'D10': 'trước', 'E10': 'Chỉ dưới', 'F10': 'hiệu',
+      'H10': 'Mặt', 'I10': 'Mặt', 'J10': '+ đen', 'K10': 'cao', 'L10': 'Ghi',
+      'A11': 'đo', 'B11': 'K/C sau', 'D11': 'K/C trước', 'F11': 'mia',
+      'H11': 'đen', 'I11': 'đỏ', 'J11': '- đỏ', 'K11': 'trung', 'L11': 'chú',
+      'B12': 'ΔS', 'D12': 'ΣΔS', 'K12': 'bình', 'N12': 'Hằng số mia K',
+    };
+    for (const [addr, val] of Object.entries(labels)) ws.getCell(addr).value = val;
+  }
+
+  function writeStationBlock(ws, tram, doc, kq, meta, k1, k2, deltaK, prevEDeltaRow) {
+    const rS = 13 + (tram - 1) * 4;
+    const rT = rS + 1;
+    const rSt = rS + 2;
+    const rDelta = rS + 3;
+
+    ws.getCell(`A${rS}`).value = tram;
+    ws.getCell(`F${rS}`).value = 'S';
+    setCell(ws, `C${rS}`, doc.cS, { fill: INPUT_FILL });
+    setCell(ws, `E${rS}`, doc.eS, { fill: INPUT_FILL });
+    setCell(ws, `H${rS}`, doc.hS, { fill: INPUT_FILL });
+    setCell(ws, `I${rS}`, doc.iS, { fill: INPUT_FILL });
+    ws.getCell(`L${rS}`).value = meta.labelS;
+    ws.getCell(`N${rS}`).value = k1;
+
+    ws.getCell(`F${rT}`).value = 'T';
+    setCell(ws, `C${rT}`, doc.cT, { fill: INPUT_FILL });
+    setCell(ws, `E${rT}`, doc.eT, { fill: INPUT_FILL });
+    setCell(ws, `H${rT}`, doc.hT, { fill: INPUT_FILL });
+    setCell(ws, `I${rT}`, doc.iT, { fill: INPUT_FILL });
+    ws.getCell(`L${rT}`).value = meta.labelT;
+    ws.getCell(`N${rT}`).value = k2;
+
+    ws.getCell(`J${rS}`).value = kq.jS;
+    ws.getCell(`J${rT}`).value = kq.jT;
+
+    ws.getCell(`C${rSt}`).value = kq.kcSau;
+    ws.getCell(`E${rSt}`).value = kq.kcTruoc;
+    ws.getCell(`F${rSt}`).value = 'S-T';
+    ws.getCell(`H${rSt}`).value = kq.chenhH;
+    ws.getCell(`I${rSt}`).value = kq.chenhI;
+    ws.getCell(`J${rSt}`).value = kq.jSt;
+    ws.getCell(`K${rSt}`).value = kq.chenhCao;
+    ws.getCell(`N${rSt}`).value = deltaK;
+
+    ws.getCell(`C${rDelta}`).value = kq.chenhKc;
+    if (tram === 1) {
+      ws.getCell(`E${rDelta}`).value = kq.chenhKc;
+    } else if (prevEDeltaRow !== null) {
+      setCell(ws, `E${rDelta}`, null, { formula: `E${prevEDeltaRow}+C${rDelta}` });
+    }
+    return rDelta;
+  }
+
+  function tongCot(docList, k1, k2, deltaK, metaSel) {
+    const s = { C: 0, E: 0, H: 0, I: 0 };
+    const t = { C: 0, E: 0, H: 0, I: 0 };
+    let jS = 0, jT = 0, jSt = 0;
+    docList.forEach((d, i) => {
+      s.C += d.cS; s.E += d.eS; s.H += d.hS; s.I += d.iS;
+      t.C += d.cT; t.E += d.eT; t.H += d.hT; t.I += d.iT;
+      const meta = metaSel ? metaSel[i] : null;
+      const kq = tinhKetQuaTram(d, k1, k2, deltaK, i + 1, meta?.nS, meta?.nT);
+      jS += kq.jS; jT += kq.jT; jSt += kq.jSt;
+    });
+    return { s, t, jS, jT, jSt };
+  }
+
+  function writeSummary(ws, nTram, tongHop, docList, k1, k2, deltaK, metaSel) {
+    const rTongS = 13 + 4 * nTram;
+    const rTongT = 14 + 4 * nTram;
+    const rUserSt = 15 + 4 * nTram;
+    const rChenh = 16 + 4 * nTram;
+    const deltaL = tongHop.lSau - tongHop.lTruoc;
+    const tong = tongCot(docList, k1, k2, deltaK, metaSel);
+
+    ws.getCell(`A${rTongS}`).value = 'Tổng';
+    ws.getCell(`F${rTongS}`).value = 'S';
+    for (const col of ['C', 'E', 'H', 'I']) {
+      ws.getCell(`${col}${rTongS}`).value = tong.s[col];
+    }
+    ws.getCell(`J${rTongS}`).value = tong.jS;
+    ws.getCell(`F${rTongT}`).value = 'T';
+    for (const col of ['C', 'E', 'H', 'I']) {
+      ws.getCell(`${col}${rTongT}`).value = tong.t[col];
+    }
+    ws.getCell(`J${rTongT}`).value = tong.jT;
+
+    ws.getCell(`C${rUserSt}`).value = tongHop.lSau;
+    ws.getCell(`E${rUserSt}`).value = tongHop.lTruoc;
+    ws.getCell(`F${rUserSt}`).value = 'S-T';
+    ws.getCell(`H${rUserSt}`).value = tongHop.hTong;
+    ws.getCell(`I${rUserSt}`).value = tong.s.I - tong.t.I;
+    ws.getCell(`J${rUserSt}`).value = tong.jSt;
+    ws.getCell(`K${rUserSt}`).value = tongHop.hTong;
+    ws.getCell(`C${rChenh}`).value = deltaL;
+    ws.getCell(`E${rChenh}`).value = deltaL;
+
+    ws.getColumn('A').width = 8;
+    ws.getColumn('C').width = 12;
+    ws.getColumn('E').width = 12;
+    ws.getColumn('H').width = 10;
+    ws.getColumn('I').width = 10;
+    ws.getColumn('L').width = 18;
+  }
+
+  async function buildWorkbook(duAn, nTram, k1, k2, deltaK, tongHop, docList, metaSel) {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Sheet1');
+    writeHeader(ws, duAn);
+    let prevEDeltaRow = null;
+    for (let i = 0; i < docList.length; i++) {
+      const kq = tinhKetQuaTram(docList[i], k1, k2, deltaK, i + 1, metaSel[i].nS, metaSel[i].nT);
+      prevEDeltaRow = writeStationBlock(ws, i + 1, docList[i], kq, metaSel[i], k1, k2, deltaK, prevEDeltaRow);
+    }
+    writeSummary(ws, nTram, tongHop, docList, k1, k2, deltaK, metaSel);
+    return wb;
+  }
+
+  function renderTable(thead, tbody, headers, rows) {
+    thead.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+    tbody.innerHTML = rows.map(row =>
+      '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>'
+    ).join('');
+  }
+
+  function statusText(ok) {
+    return `<span class="${ok ? 'status-ok' : 'status-fail'}">${ok ? 'ĐẠT' : 'KHÔNG ĐẠT'}</span>`;
+  }
+
+  let lastState = null;
+
+  const TECH_INPUT_IDS = ['nTram', 'k1', 'k2', 'deltaK', 'lSau', 'kcSauMin', 'kcSauMax', 'lTruoc', 'hTong', 'iTong'];
+  const PROJECT_INPUT_IDS = ['doTu', 'den', 'batDau', 'ketThuc', 'ngayDo', 'thoiTiet', 'nguoiDo', 'nguoiGhi', 'nguoiKiemTra'];
+
+  function capNhatThongTinDuAn() {
+    if (!lastState) {
+      capNhat(true);
+      return;
+    }
+    const inp = readInputs();
+    lastState.inp = { ...lastState.inp, duAn: inp.duAn };
+  }
+
+  function capNhat(reshuffle) {
+    const inp = readInputs();
+    const nTram = Math.max(1, Math.min(50, inp.nTram));
+    const alertKc = document.getElementById('alertKcSau');
+
+    if (inp.kcSauMin != null && inp.kcSauMax != null && inp.kcSauMin > inp.kcSauMax) {
+      alertKc.className = 'note';
+      alertKc.style.color = 'var(--error)';
+      alertKc.textContent = 'Cận dưới KC sau phải ≤ cận trên.';
+      return;
+    }
+
+    const tbMin = inp.kcSauMin ?? 0;
+    const tbMax = inp.kcSauMax ?? Infinity;
+    if ((inp.kcSauMin != null || inp.kcSauMax != null) && !kcSauKhaThi(nTram, inp.lSau, inp.kcSauMin, inp.kcSauMax)) {
+      alertKc.className = 'note';
+      alertKc.style.color = 'var(--error)';
+      alertKc.textContent = (
+        `Không thể phân bổ: cần ${inp.lSau} m tổng L_sau nhưng `
+        + `${nTram} trạm × [${inp.kcSauMin ?? '−∞'}, ${inp.kcSauMax ?? '+∞'}] m `
+        + `chỉ cho phép từ ${(nTram * tbMin).toFixed(1)} đến ${Number.isFinite(tbMax) ? (nTram * tbMax).toFixed(1) : '∞'} m.`
+      );
+      return;
+    }
+
+    if (inp.kcSauMin != null || inp.kcSauMax != null) {
+      alertKc.className = 'note';
+      alertKc.style.color = 'var(--muted)';
+      alertKc.textContent = (
+        `Giới hạn KC sau mỗi trạm: `
+        + `${inp.kcSauMin != null ? inp.kcSauMin + ' m' : 'không'} `
+        + `đến ${inp.kcSauMax != null ? inp.kcSauMax + ' m' : 'không giới hạn'}.`
+      );
+    } else {
+      alertKc.textContent = '';
+    }
+
+    const phanBo = phanBoTram(
+      nTram, inp.k1, inp.k2, inp.lSau, inp.lTruoc, inp.hTong, inp.iTong, inp.deltaK,
+      inp.kcSauMin, inp.kcSauMax
+    );
+    if (!phanBo) {
+      alertKc.className = 'note';
+      alertKc.style.color = 'var(--error)';
+      alertKc.textContent = 'Không tìm được phân bổ thỏa giới hạn KC sau — thử nới biên hoặc bấm Phân bổ lại.';
+      return;
+    }
+    const { docList, metaSel } = phanBo;
+    const kiemTra = tongKiemTra(docList, inp.k1, inp.k2, inp.deltaK, metaSel);
+    const hang4 = kiemTraHang4(docList, inp.k1, inp.k2, inp.deltaK, metaSel);
+    const kq = tinhKetQuaTongHop({
+      soTram: nTram, k1: inp.k1, k2: inp.k2, deltaK: inp.deltaK,
+      lSau: inp.lSau, lTruoc: inp.lTruoc, hTong: inp.hTong, iTong: inp.iTong,
+    });
+
+    const previewRows = docList.map((doc, i) => {
+      const kqTram = tinhKetQuaTram(doc, inp.k1, inp.k2, inp.deltaK, i + 1, metaSel[i].nS, metaSel[i].nT);
+      return [
+        i + 1,
+        Math.round(kqTram.kcSau * 100) / 100,
+        Math.round(kqTram.kcTruoc * 100) / 100,
+        kqTram.chenhH,
+        kqTram.chenhCao,
+        kqTram.saiSoHS,
+        kqTram.saiSoHT,
+        kqTram.jS,
+        kqTram.jT,
+      ];
+    });
+
+    renderTable(
+      document.querySelector('#tblPreview thead'),
+      document.querySelector('#tblPreview tbody'),
+      ['Trạm', 'KC sau (m)', 'KC trước (m)', 'Chênh H (mm)', 'Chênh cao K (mm)', '|H-mid| sau (mm)', '|H-mid| trước (mm)', 'J sau', 'J trước'],
+      previewRows
+    );
+
+    document.getElementById('tongTinhLai').textContent =
+      `Tổng tính lại: L_sau=${kiemTra.lSau} m, L_truoc=${kiemTra.lTruoc} m, H=${kiemTra.hTong} mm, I=${kiemTra.iTong} mm`;
+
+    const hang4Rows = hang4.map(h => [
+      h.tram,
+      h.datKc5m ? '✓' : '✗',
+      h.datHS5mm ? '✓' : '✗',
+      h.datHT5mm ? '✓' : '✗',
+      h.datJS ? '✓' : '✗',
+      h.datJT ? '✓' : '✗',
+      h.saiHS, h.saiHT, h.jS, h.jT, h.chenhCao,
+    ]);
+    renderTable(
+      document.querySelector('#tblHang4 thead'),
+      document.querySelector('#tblHang4 tbody'),
+      ['Trạm', 'ΔKC≤5m', '|H-mid|s', '|H-mid|t', '|J|s', '|J|t', 'sai_h_s', 'sai_h_t', 'j_s', 'j_t', 'chenh_cao'],
+      hang4Rows
+    );
+
+    const viPham = hang4.filter(h => !(h.datHS5mm && h.datHT5mm && h.datJS && h.datJT && h.datJSt));
+    const alertEl = document.getElementById('alertHang4');
+    if (viPham.length) {
+      alertEl.className = 'alert alert-error';
+      alertEl.textContent = `Có ${viPham.length} trạm vi phạm: |H−mid| > 5 mm hoặc |J| > 2 mm.`;
+    } else {
+      alertEl.className = 'alert alert-success';
+      alertEl.textContent = 'Tất cả trạm đạt: |H−mid stadia| ≤ 5 mm, |J| ≤ 2 mm.';
+    }
+
+    document.getElementById('metrics').innerHTML = `
+      <div class="metric"><div class="label">Chênh khoảng cách</div><div class="value">${kq.deltaL.toFixed(1)} m</div></div>
+      <div class="metric"><div class="label">Chiều dài tuyến L</div><div class="value">${kq.lKm.toFixed(3)} km</div></div>
+      <div class="metric"><div class="label">Dung sai hạng 4</div><div class="value">±${kq.mp.toFixed(1)} mm</div></div>
+      <div class="metric"><div class="label">Chênh I − H</div><div class="value">${kq.deltaHi} mm</div></div>
+    `;
+
+    renderTable(
+      document.querySelector('#tblTongHop thead'),
+      document.querySelector('#tblTongHop tbody'),
+      ['Tiêu chí', 'Kết quả'],
+      [
+        [`Chênh khoảng cách (|ΔL| ≤ ${kq.gioiHanChenhKc} m)`, statusText(kq.datChenhKc)],
+        [`Khép vòng cao độ (|H| ≤ ${kq.mp.toFixed(1)} mm)`, statusText(kq.datKhepVong)],
+        ['Kiểm tra K', statusText(kq.datKiemTraK)],
+      ]
+    );
+
+    document.getElementById('infoFile').textContent =
+      `File Excel gồm ${nTram} trạm — phân bổ không đều, mọi trạm đạt |H−mid| ≤ 5 mm và |J| ≤ 2 mm.`;
+
+    lastState = {
+      inp, nTram, docList, metaSel,
+      tongHop: { lSau: inp.lSau, lTruoc: inp.lTruoc, hTong: inp.hTong, iTong: inp.iTong },
+    };
+  }
+
+  async function downloadExcel() {
+    if (!lastState) return;
+    const { inp, nTram, docList, metaSel, tongHop } = lastState;
+    const wb = await buildWorkbook(inp.duAn, nTram, inp.k1, inp.k2, inp.deltaK, tongHop, docList, metaSel);
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const name = 'So_do_' + (inp.duAn.doTu.replace(/\s+/g, '_').slice(0, 30) || 'du_an') + '.xlsx';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  TECH_INPUT_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => capNhat(true));
+    el.addEventListener('change', () => capNhat(true));
+  });
+  PROJECT_INPUT_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', capNhatThongTinDuAn);
+    el.addEventListener('change', capNhatThongTinDuAn);
+  });
+  document.getElementById('btnReshuffle').addEventListener('click', () => capNhat(true));
+  document.getElementById('btnDownload').addEventListener('click', downloadExcel);
+  capNhat(true);
+  </script>
+</body>
+</html>
