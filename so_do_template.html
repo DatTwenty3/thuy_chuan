@@ -198,36 +198,140 @@
     return list;
   }
 
-  function taoKcTruocTuSau(kcSauList, lTruoc) {
-    const n = kcSauList.length;
-    const clampKt = (i, val) => clamp(val, kcSauList[i] - 5, kcSauList[i] + 5);
+  function lamTronMotChuSo(v) {
+    return Math.round(v * 10) / 10;
+  }
 
-    let kcTruoc = kcSauList.map((ks, i) => {
-      const jitter = Math.round((Math.random() * 9 - 4.5) * 10) / 10;
-      return clampKt(i, Math.round((ks + jitter) * 10) / 10);
-    });
-    kcTruoc = kcTruoc.map((kt, i) => clampKt(i, kt));
+  function nenTranhSoTron(v, lo, hi) {
+    if (Math.abs(v - Math.round(v)) > 0.001) return v;
+    const options = [];
+    for (let d = 1; d <= 9; d++) {
+      const delta = d / 10;
+      if (v + delta <= hi + 0.001) options.push(lamTronMotChuSo(v + delta));
+      if (v - delta >= lo - 0.001) options.push(lamTronMotChuSo(v - delta));
+    }
+    if (!options.length) return v;
+    return options[Math.floor(Math.random() * options.length)];
+  }
 
-    let err = Math.round((lTruoc - kcTruoc.reduce((a, b) => a + b, 0)) * 10) / 10;
-    for (let pass = 0; pass < n * 4 && Math.abs(err) > 0.05; pass++) {
-      const i = pass % n;
-      const roomHi = kcSauList[i] + 5 - kcTruoc[i];
-      const roomLo = kcTruoc[i] - (kcSauList[i] - 5);
+  function nenTranhBien(v, lo, hi) {
+    const margin = Math.min(0.5, (hi - lo) * 0.08);
+    if (margin <= 0) return nenTranhSoTron(v, lo, hi);
+    if (v <= lo + margin || v >= hi - margin) {
+      const innerLo = lo + margin;
+      const innerHi = hi - margin;
+      if (innerHi > innerLo) {
+        const inner = innerLo + Math.random() * (innerHi - innerLo);
+        return nenTranhSoTron(lamTronMotChuSo(inner), lo, hi);
+      }
+    }
+    return nenTranhSoTron(v, lo, hi);
+  }
+
+  function phanBoKcKhongDeu(weights, tong, kcMin, kcMax, perStationBounds) {
+    const n = weights.length;
+    if (n < 1 || tong <= 0) return null;
+    const trungBinh = tong / n;
+    const defaultLo = trungBinh - 4;
+    const defaultHi = trungBinh + 4;
+
+    const boundFor = (i) => {
+      if (perStationBounds && perStationBounds[i]) {
+        return { lo: perStationBounds[i][0], hi: perStationBounds[i][1] };
+      }
+      return {
+        lo: kcMin ?? defaultLo,
+        hi: kcMax ?? defaultHi,
+      };
+    };
+
+    const parts = [];
+    for (let i = 0; i < n; i++) {
+      const { lo, hi } = boundFor(i);
+      const mid = (lo + hi) / 2;
+      const spread = Math.min(3, (hi - lo) * 0.35);
+      let v = mid + (Math.random() * 2 - 1) * spread;
+      v = lamTronMotChuSo(clamp(v, lo, hi));
+      v = nenTranhBien(v, lo, hi);
+      parts.push(v);
+    }
+
+    let err = lamTronMotChuSo(tong - parts.reduce((a, b) => a + b, 0));
+    for (let pass = 0; pass < n * 12 && Math.abs(err) > 0.05; pass++) {
+      let bestI = -1;
+      let bestRoom = -1;
+      for (let i = 0; i < n; i++) {
+        const { lo, hi } = boundFor(i);
+        const room = err > 0 ? hi - parts[i] : parts[i] - lo;
+        if (room > bestRoom + 0.04) {
+          bestRoom = room;
+          bestI = i;
+        }
+      }
+      if (bestI < 0 || bestRoom < 0.05) break;
+      const { lo, hi } = boundFor(bestI);
       const step = err > 0
-        ? Math.min(roomHi, err)
-        : -Math.min(roomLo, -err);
-      if (Math.abs(step) < 0.05) continue;
-      kcTruoc[i] = Math.round((kcTruoc[i] + step) * 10) / 10;
-      err = Math.round((err - step) * 10) / 10;
+        ? Math.min(bestRoom, err)
+        : -Math.min(bestRoom, -err);
+      if (Math.abs(step) < 0.05) break;
+      const next = lamTronMotChuSo(clamp(parts[bestI] + step, lo, hi));
+      const actual = lamTronMotChuSo(next - parts[bestI]);
+      if (Math.abs(actual) < 0.05) break;
+      parts[bestI] = next;
+      err = lamTronMotChuSo(err - actual);
     }
-    if (Math.abs(err) > 0.15) {
-      const i = n - 1;
-      const next = clampKt(i, Math.round((kcTruoc[i] + err) * 10) / 10);
-      if (Math.abs(next - kcSauList[i]) > 5) return null;
-      kcTruoc[i] = next;
+    if (Math.abs(err) > 0.05) {
+      for (let i = n - 1; i >= 0 && Math.abs(err) > 0.05; i--) {
+        const { lo, hi } = boundFor(i);
+        const room = err > 0 ? hi - parts[i] : parts[i] - lo;
+        if (room < 0.05) continue;
+        const step = err > 0 ? Math.min(room, err) : -Math.min(room, -err);
+        const next = lamTronMotChuSo(clamp(parts[i] + step, lo, hi));
+        const actual = lamTronMotChuSo(next - parts[i]);
+        parts[i] = next;
+        err = lamTronMotChuSo(err - actual);
+      }
     }
-    if (kcTruoc.some((kt, i) => Math.abs(kt - kcSauList[i]) > 5.01)) return null;
-    return kcTruoc;
+
+    for (let i = 0; i < n; i++) {
+      const { lo, hi } = boundFor(i);
+      if (Math.abs(parts[i] - Math.round(parts[i])) < 0.001) {
+        const adjusted = nenTranhBien(parts[i], lo, hi);
+        const delta = lamTronMotChuSo(adjusted - parts[i]);
+        if (Math.abs(delta) < 0.05) continue;
+        let partner = -1;
+        for (let j = n - 1; j >= 0; j--) {
+          if (j === i) continue;
+          const b = boundFor(j);
+          const room = delta > 0 ? parts[j] - b.lo : b.hi - parts[j];
+          if (room >= Math.abs(delta) - 0.01) { partner = j; break; }
+        }
+        if (partner < 0) continue;
+        const b = boundFor(partner);
+        const nextP = lamTronMotChuSo(clamp(parts[partner] - delta, b.lo, b.hi));
+        if (Math.abs(lamTronMotChuSo(nextP - parts[partner] + delta)) > 0.01) continue;
+        parts[i] = adjusted;
+        parts[partner] = nextP;
+      }
+    }
+
+    const sum = lamTronMotChuSo(parts.reduce((a, b) => a + b, 0));
+    if (Math.abs(sum - tong) > 0.15) return null;
+    for (let i = 0; i < n; i++) {
+      const { lo, hi } = boundFor(i);
+      if (parts[i] < lo - 0.01 || parts[i] > hi + 0.01) return null;
+    }
+    return parts;
+  }
+
+  function phanBoKcTruocTuSau(kcSauList, lTruoc) {
+    const n = kcSauList.length;
+    const bounds = kcSauList.map((ks) => [ks - 5, ks + 5]);
+    const weights = taoTrongSo(n);
+    const parts = phanBoKcKhongDeu(weights, lTruoc, null, null, bounds);
+    if (!parts) return null;
+    if (parts.some((kt, i) => Math.abs(kt - kcSauList[i]) > 5.01)) return null;
+    return parts;
   }
 
   function phanBoTheoTyLe(values, tongMoi) {
@@ -253,39 +357,11 @@
   }
 
   function phanBoKcSauCoGioiHan(weights, lSau, kcMin, kcMax) {
-    if (kcMin == null && kcMax == null) {
-      return phanBoTheoTyLe(weights, lSau);
-    }
     const n = weights.length;
-    if (!kcSauKhaThi(n, lSau, kcMin, kcMax)) return null;
-
-    const lo = kcMin ?? 0;
-    const hi = kcMax ?? Infinity;
-    let parts = phanBoTheoTyLe(weights, lSau).map((p) =>
-      Math.round(clamp(p, lo, hi) * 10) / 10
-    );
-
-    let err = Math.round((lSau - parts.reduce((a, b) => a + b, 0)) * 10) / 10;
-    for (let pass = 0; pass < n * 8 && Math.abs(err) > 0.05; pass++) {
-      const i = pass % n;
-      const roomHi = hi - parts[i];
-      const roomLo = parts[i] - lo;
-      const step = err > 0
-        ? Math.min(roomHi, err)
-        : -Math.min(roomLo, -err);
-      if (Math.abs(step) < 0.01) continue;
-      parts[i] = Math.round((parts[i] + step) * 10) / 10;
-      err = Math.round((err - step) * 10) / 10;
+    if (kcMin != null || kcMax != null) {
+      if (!kcSauKhaThi(n, lSau, kcMin, kcMax)) return null;
     }
-    if (Math.abs(err) > 0.05) {
-      const i = n - 1;
-      parts[i] = Math.round(clamp(parts[i] + err, lo, hi) * 10) / 10;
-    }
-
-    const sum = Math.round(parts.reduce((a, b) => a + b, 0) * 10) / 10;
-    if (Math.abs(sum - lSau) > 0.15) return null;
-    if (parts.some((p) => p < lo - 0.01 || p > hi + 0.01)) return null;
-    return parts;
+    return phanBoKcKhongDeu(weights, lSau, kcMin, kcMax, null);
   }
 
   function phanBoNguyen(values, tongMoi) {
@@ -550,7 +626,7 @@
   function phanBoTramOnce(n, k1, k2, lSau, lTruoc, hTong, iTong, deltaK, weights, midEList, kcSauMin, kcSauMax) {
     const kcSauList = phanBoKcSauCoGioiHan(weights, lSau, kcSauMin, kcSauMax);
     if (!kcSauList) return null;
-    const kcTruocList = taoKcTruocTuSau(kcSauList, lTruoc);
+    const kcTruocList = phanBoKcTruocTuSau(kcSauList, lTruoc);
     if (!kcTruocList) return null;
 
     const chenhHList = phanBoChenhHDaDau(n, hTong);
